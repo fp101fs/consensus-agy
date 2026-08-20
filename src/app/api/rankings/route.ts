@@ -74,11 +74,12 @@ export async function GET(req: NextRequest) {
     // 3. Compute Bradley-Terry Elo, Bayesian Uncertainty & Composite Rankings
     const rankings: BradleyTerryScore[] = computeBradleyTerryRatings(rawModels, matches);
 
-    // 4. Per-Benchmark breakdown: How each model performed on specific logic puzzles
+    // 4. Per-Benchmark breakdown: How each model performed on specific logic puzzles & security audits
     const benchRes = await db.query(`
       SELECT 
         COALESCE(q.benchmark_id, 'custom-prompt') as benchmark_id,
         COALESCE(q.benchmark_title, 'Custom Query') as benchmark_title,
+        COALESCE(MAX(q.category), 'General') as category,
         m.model_id,
         MAX(m.model_name) as model_name,
         COUNT(*)::int as runs,
@@ -102,6 +103,7 @@ export async function GET(req: NextRequest) {
         benchmarkMap[bId] = {
           benchmarkId: bId,
           benchmarkTitle: row.benchmark_title,
+          category: row.category,
           totalRuns: 0,
           winningModels: [],
           modelScores: [],

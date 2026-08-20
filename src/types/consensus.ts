@@ -93,6 +93,8 @@ export interface ModelRanking {
 export interface BenchmarkStats {
   benchmarkId: string;
   benchmarkTitle: string;
+  category?: string;
+  tags?: string[];
   totalRuns: number;
   winningModels: { modelId: string; modelName: string; wins: number; winRate: number }[];
   modelScores: {

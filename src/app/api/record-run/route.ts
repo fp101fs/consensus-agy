@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const db = getDbPool();
     await initDbSchema();
 
-    const { benchmarkId, benchmarkTitle } = getPromptBenchmarkId(prompt);
+    const { benchmarkId, benchmarkTitle, category, tags } = getPromptBenchmarkId(prompt);
     const outputs: ModelOutput[] = Object.values(modelOutputs);
 
     let totalTokensIn = 0;
@@ -40,6 +40,8 @@ export async function POST(req: NextRequest) {
       INSERT INTO consensus_queries (
         benchmark_id,
         benchmark_title,
+        category,
+        tags,
         prompt,
         winner_model_id,
         winner_reason,
@@ -51,12 +53,14 @@ export async function POST(req: NextRequest) {
         total_tokens_out,
         total_latency_ms,
         judge_report
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING id, created_at
       `,
       [
         benchmarkId,
         benchmarkTitle,
+        category,
+        tags,
         prompt,
         report?.winnerModelId || null,
         report?.winnerReason || null,

@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { benchmarkId, benchmarkTitle } = getPromptBenchmarkId(prompt);
+    const { benchmarkId, benchmarkTitle, category, tags } = getPromptBenchmarkId(prompt);
     const promptTokens = estimateTokens(prompt);
 
     // 1. Run all candidate models simultaneously in parallel
@@ -304,6 +304,8 @@ ${m.response || `[Failed: ${m.error || 'No output'}]`}
           INSERT INTO consensus_queries (
             benchmark_id,
             benchmark_title,
+            category,
+            tags,
             prompt,
             winner_model_id,
             winner_reason,
@@ -315,12 +317,14 @@ ${m.response || `[Failed: ${m.error || 'No output'}]`}
             total_tokens_out,
             total_latency_ms,
             judge_report
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
           RETURNING id
           `,
           [
             benchmarkId,
             benchmarkTitle,
+            category,
+            tags,
             prompt,
             judgeReport.winnerModelId || null,
             judgeReport.winnerReason || null,

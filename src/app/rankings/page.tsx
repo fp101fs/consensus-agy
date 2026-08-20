@@ -595,13 +595,15 @@ export default function RankingsPage() {
         {/* BY PUZZLE BENCHMARK TAB */}
         {activeTab === 'by-puzzle' && (
           <section className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-neutral-200 uppercase tracking-wider">
-                Head-to-Head Breakdown by Logic Puzzle & Benchmark ID
-              </h3>
-              <span className="text-xs text-neutral-500 font-mono">
-                {benchmarks.length} benchmark categories recorded
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-neutral-200 uppercase tracking-wider">
+                  Head-to-Head Breakdown by Benchmark & Category
+                </h3>
+                <span className="text-xs text-neutral-500 font-mono">
+                  {benchmarks.length} benchmarks recorded across Logic & Security
+                </span>
+              </div>
             </div>
 
             {benchmarks.length > 0 ? (
@@ -613,9 +615,14 @@ export default function RankingsPage() {
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-800 pb-3">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <h4 className="font-bold text-white text-base">{b.benchmarkTitle}</h4>
-                          <code className="text-[10px] bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800 font-mono text-indigo-400">
+                          {b.category && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-semibold">
+                              {b.category}
+                            </span>
+                          )}
+                          <code className="text-[10px] bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800 font-mono text-neutral-400">
                             {b.benchmarkId}
                           </code>
                         </div>
