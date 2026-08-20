@@ -12,19 +12,28 @@ interface SvgRendererProps {
 export function extractSvg(raw: string): string | null {
   if (!raw) return null;
 
+  let svgText: string | null = null;
+
   // 1. Check for standard <svg ... </svg>
   const match = raw.match(/<svg[\s\S]*?<\/svg>/i);
   if (match) {
-    return match[0].trim();
+    svgText = match[0].trim();
+  } else {
+    // 2. Check if wrapped in markdown code fence ```xml or ```svg
+    const fenceMatch = raw.match(/```(?:xml|svg|html)?\s*(<svg[\s\S]*?<\/svg>)\s*```/i);
+    if (fenceMatch) {
+      svgText = fenceMatch[1].trim();
+    }
   }
 
-  // 2. Check if wrapped in markdown code fence ```xml or ```svg
-  const fenceMatch = raw.match(/```(?:xml|svg|html)?\s*(<svg[\s\S]*?<\/svg>)\s*```/i);
-  if (fenceMatch) {
-    return fenceMatch[1].trim();
+  if (!svgText) return null;
+
+  // Ensure svg has proper xmlns and cleanup malformed double M commands in paths
+  if (!svgText.includes('xmlns="http://www.w3.org/2000/svg"')) {
+    svgText = svgText.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
   }
 
-  return null;
+  return svgText;
 }
 
 export const SvgRenderer: React.FC<SvgRendererProps> = ({ content, className = '', title = 'SVG Artwork' }) => {
