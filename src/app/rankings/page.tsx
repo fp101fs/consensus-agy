@@ -13,6 +13,10 @@ import {
   BrainCircuit,
   Copy,
   Check,
+  ShieldAlert,
+  Info,
+  Scale,
+  Gauge,
 } from 'lucide-react';
 
 export default function RankingsPage() {
@@ -65,7 +69,7 @@ export default function RankingsPage() {
             </Link>
             <h1 className="font-extrabold text-base text-white flex items-center gap-2">
               <Trophy className="w-4 h-4 text-amber-400" />
-              <span>Consensus Leaderboard & Benchmark Analytics</span>
+              <span>Consensus Leaderboard & Bradley–Terry Elo Rankings</span>
             </h1>
           </div>
 
@@ -92,13 +96,17 @@ export default function RankingsPage() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8">
         {/* Intro Banner */}
         <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-950/20 via-neutral-900/60 to-neutral-900 border border-neutral-800 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] font-semibold mb-1">
+              <Scale className="w-3 h-3" />
+              <span>Pairwise Bradley–Terry Model + Bayesian Quality Index</span>
+            </div>
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <span>Model Arbitration Standings & Puzzle Head-to-Head</span>
+              <span>Model Arbitration Standings & Empirical Elo</span>
               <Sparkles className="w-4 h-4 text-amber-400" />
             </h2>
-            <p className="text-xs text-neutral-400 mt-1 max-w-2xl">
-              Compare global Win % across all arbitrations, or drill down into specific logic puzzle benchmarks (e.g. Einstein's Riddle, River Crossing, Scheduling) to see which model solves specific problem domains best.
+            <p className="text-xs text-neutral-400 max-w-2xl leading-relaxed">
+              Rankings combine <strong>Head-to-Head Bradley–Terry Elo</strong> (45%), <strong>Quality & Accuracy</strong> (35%), and <strong>Speed & Practicality</strong> (20%). Low sample sizes (n &lt; 3 runs) are flagged as <em>Provisional</em> with Bayesian shrinkage so single-test wins don't artificially claim #1 over proven multi-match champions.
             </p>
           </div>
 
@@ -112,7 +120,7 @@ export default function RankingsPage() {
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
-              Global Standings
+              Holistic Standings
             </button>
             <button
               onClick={() => setActiveTab('by-puzzle')}
@@ -148,22 +156,39 @@ export default function RankingsPage() {
                     >
                       <div className="flex items-center justify-between text-xs mb-3">
                         <span className="font-bold uppercase tracking-wider">{titles[idx]}</span>
-                        <Medal className="w-5 h-5" />
+                        <div className="flex items-center gap-1.5">
+                          {r.isProvisional ? (
+                            <span className="text-[10px] bg-neutral-800 text-neutral-300 px-2 py-0.5 rounded-full font-mono border border-neutral-700">
+                              Provisional
+                            </span>
+                          ) : (
+                            <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-mono font-bold border border-amber-500/40">
+                              Tier {r.tier}
+                            </span>
+                          )}
+                          <Medal className="w-5 h-5" />
+                        </div>
                       </div>
                       <h3 className="text-lg font-black text-white">{r.modelName}</h3>
                       <div className="text-xs text-neutral-400 font-mono mb-4">{r.provider}</div>
 
-                      <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                      <div className="grid grid-cols-3 gap-1.5 text-center text-xs">
                         <div className="bg-neutral-950/70 p-2 rounded-xl border border-white/5">
-                          <div className="text-[10px] text-neutral-400">Win Rate</div>
-                          <div className="text-base font-black font-mono text-amber-400">
-                            {Math.round(r.winRate)}%
+                          <div className="text-[10px] text-neutral-400">Elo Rating</div>
+                          <div className="text-sm font-black font-mono text-amber-400">
+                            {r.eloRating || 1500}
+                          </div>
+                        </div>
+                        <div className="bg-neutral-950/70 p-2 rounded-xl border border-white/5">
+                          <div className="text-[10px] text-neutral-400">Composite</div>
+                          <div className="text-sm font-black font-mono text-indigo-300">
+                            {Math.round(r.compositeScore || 0)}/100
                           </div>
                         </div>
                         <div className="bg-neutral-950/70 p-2 rounded-xl border border-white/5">
                           <div className="text-[10px] text-neutral-400">Wins / Runs</div>
-                          <div className="text-base font-black font-mono text-white">
-                            {r.totalWins} / {r.totalRuns}
+                          <div className="text-sm font-black font-mono text-white">
+                            {r.totalWins}/{r.totalRuns}
                           </div>
                         </div>
                       </div>
@@ -176,11 +201,11 @@ export default function RankingsPage() {
             {/* Full Leaderboard Table */}
             <section className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-neutral-200 uppercase tracking-wider">
-                  Comprehensive Model Standings (Sorted by Win % Descending)
+                <h3 className="text-sm font-bold text-neutral-200 uppercase tracking-wider flex items-center gap-2">
+                  <span>Holistic Leaderboard (Ranked by Bradley–Terry Elo & Composite Quality)</span>
                 </h3>
                 <span className="text-xs text-neutral-500 font-mono">
-                  {rankings.length} models tracked
+                  {rankings.length} models evaluated
                 </span>
               </div>
 
@@ -191,13 +216,14 @@ export default function RankingsPage() {
                       <tr>
                         <th className="p-4">Rank</th>
                         <th className="p-4">Model & Provider</th>
+                        <th className="p-4">Elo (BT)</th>
+                        <th className="p-4">Composite Score</th>
                         <th className="p-4">Win Rate %</th>
                         <th className="p-4">Wins / Runs</th>
-                        <th className="p-4">Avg Accuracy</th>
-                        <th className="p-4">Avg Completeness</th>
-                        <th className="p-4">Avg Score</th>
+                        <th className="p-4">Accuracy</th>
+                        <th className="p-4">Reasoning</th>
                         <th className="p-4">Speed</th>
-                        <th className="p-4">Total Cost</th>
+                        <th className="p-4">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-800/60 font-sans">
@@ -235,22 +261,40 @@ export default function RankingsPage() {
                                 <span className="text-neutral-400">{r.modelId}</span>
                               </div>
                             </td>
-                            <td className="p-4">
+                            {/* Bradley-Terry Elo */}
+                            <td className="p-4 font-mono">
+                              <span className="font-bold text-amber-400 text-sm">
+                                {r.eloRating || 1500}
+                              </span>
+                              {r.confidenceInterval && (
+                                <div className="text-[10px] text-neutral-500">
+                                  CI: [{r.confidenceInterval[0]}-{r.confidenceInterval[1]}]
+                                </div>
+                              )}
+                            </td>
+                            {/* Composite Rank Index */}
+                            <td className="p-4 font-mono">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono font-black text-amber-400 text-sm">
-                                  {Math.round(r.winRate)}%
+                                <span className="font-black text-indigo-300 text-sm">
+                                  {Math.round(r.compositeScore || 0)}
                                 </span>
-                                <div className="w-16 h-1.5 rounded-full bg-neutral-800 overflow-hidden">
+                                <div className="w-12 h-1.5 rounded-full bg-neutral-800 overflow-hidden">
                                   <div
-                                    className="h-full bg-amber-400 rounded-full"
-                                    style={{ width: `${Math.round(r.winRate)}%` }}
+                                    className="h-full bg-indigo-500 rounded-full"
+                                    style={{ width: `${Math.round(r.compositeScore || 0)}%` }}
                                   />
                                 </div>
                               </div>
                             </td>
+                            {/* Win Rate */}
+                            <td className="p-4 font-mono text-neutral-200">
+                              {Math.round(r.winRate)}%
+                            </td>
+                            {/* Wins / Runs */}
                             <td className="p-4 font-mono text-neutral-300">
                               {r.totalWins} <span className="text-neutral-500">/ {r.totalRuns}</span>
                             </td>
+                            {/* Accuracy */}
                             <td className="p-4 font-mono">
                               <span
                                 className={`px-2 py-0.5 rounded text-[11px] ${
@@ -262,23 +306,31 @@ export default function RankingsPage() {
                                 {r.avgAccuracy > 0 ? `${Math.round(r.avgAccuracy)}%` : 'N/A'}
                               </span>
                             </td>
-                            <td className="p-4 font-mono text-sky-400">
-                              {r.avgCompleteness > 0 ? `${Math.round(r.avgCompleteness)}%` : 'N/A'}
+                            {/* Reasoning */}
+                            <td className="p-4 font-mono text-purple-300">
+                              {r.avgReasoning > 0 ? `${Math.round(r.avgReasoning)}%` : 'N/A'}
                             </td>
-                            <td className="p-4 font-mono font-bold text-white text-sm">
-                              {r.avgOverallScore > 0 ? `${Math.round(r.avgOverallScore)}/100` : 'N/A'}
-                            </td>
+                            {/* Speed */}
                             <td className="p-4 font-mono text-emerald-400 text-[11px]">
                               {r.avgTokensPerSec > 0 ? `${Math.round(r.avgTokensPerSec)} tok/s` : 'N/A'}
                             </td>
-                            <td className="p-4 font-mono text-amber-300">
-                              ${r.totalCostUsd.toFixed(4)}
+                            {/* Provisional Flag */}
+                            <td className="p-4">
+                              {r.isProvisional ? (
+                                <span className="text-[10px] bg-neutral-800/80 text-neutral-400 border border-neutral-700 px-2 py-0.5 rounded-md font-mono">
+                                  Provisional ({r.totalRuns} run)
+                                </span>
+                              ) : (
+                                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-md font-mono font-bold">
+                                  Tier {r.tier}
+                                </span>
+                              )}
                             </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={9} className="p-8 text-center text-neutral-500 italic">
+                          <td colSpan={10} className="p-8 text-center text-neutral-500 italic">
                             No rankings data yet. Run comparisons in the arena to generate win statistics!
                           </td>
                         </tr>

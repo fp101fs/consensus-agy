@@ -1,6 +1,12 @@
 import { NextRequest } from 'next/server';
 import { getDbPool, initDbSchema } from '@/lib/db';
-import { ModelRanking, BenchmarkStats } from '@/types/consensus';
+import { BenchmarkStats } from '@/types/consensus';
+import {
+  computeBradleyTerryRatings,
+  HeadToHeadMatch,
+  ModelPerformanceStats,
+  BradleyTerryScore,
+} from '@/lib/bradley-terry';
 
 export const runtime = 'nodejs';
 export const revalidate = 0;
@@ -10,8 +16,8 @@ export async function GET(req: NextRequest) {
     const db = getDbPool();
     await initDbSchema();
 
-    // 1. Overall model standings
-    const query = `
+    // 1. Raw performance statistics per model
+    const statsQuery = `
       SELECT 
         m.model_id,
         MAX(m.model_name) as model_name,
@@ -28,12 +34,11 @@ export async function GET(req: NextRequest) {
         ROUND(SUM(m.cost_usd)::numeric, 5)::float as total_cost_usd
       FROM model_runs m
       GROUP BY m.model_id
-      ORDER BY win_rate DESC, total_wins DESC, avg_overall_score DESC
     `;
 
-    const res = await db.query(query);
+    const statsRes = await db.query(statsQuery);
 
-    const rankings: ModelRanking[] = res.rows.map((r) => ({
+    const rawModels: ModelPerformanceStats[] = statsRes.rows.map((r) => ({
       modelId: r.model_id,
       modelName: r.model_name || r.model_id,
       provider: r.provider || 'AI',
@@ -49,7 +54,27 @@ export async function GET(req: NextRequest) {
       totalCostUsd: Number(r.total_cost_usd || 0),
     }));
 
-    // 2. Per-Benchmark breakdown: How each model performed on specific logic puzzles / benchmarks
+    // 2. Fetch all individual head-to-head match events for pairwise Bradley-Terry modeling
+    const matchesRes = await db.query(`
+      SELECT 
+        q.id as query_id,
+        q.winner_model_id,
+        ARRAY_AGG(m.model_id) as participant_model_ids
+      FROM consensus_queries q
+      JOIN model_runs m ON m.query_id = q.id
+      GROUP BY q.id, q.winner_model_id
+    `);
+
+    const matches: HeadToHeadMatch[] = matchesRes.rows.map((r) => ({
+      queryId: r.query_id,
+      winnerModelId: r.winner_model_id,
+      participantModelIds: r.participant_model_ids || [],
+    }));
+
+    // 3. Compute Bradley-Terry Elo, Bayesian Uncertainty & Composite Rankings
+    const rankings: BradleyTerryScore[] = computeBradleyTerryRatings(rawModels, matches);
+
+    // 4. Per-Benchmark breakdown: How each model performed on specific logic puzzles
     const benchRes = await db.query(`
       SELECT 
         COALESCE(q.benchmark_id, 'custom-prompt') as benchmark_id,

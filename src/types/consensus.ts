@@ -37,7 +37,7 @@ export interface ModelEvaluation {
   hallucinationsOrErrors?: string[];
   distinctiveAngle?: string;
   metaCognition?: {
-    claimedConfidence?: number; // 0-100 reported by model
+    claimedConfidence?: number;
     confidenceAppropriateness?: 'Well-Calibrated' | 'Overconfident' | 'Underconfident' | 'Unspecified';
     uniquenessRecognition?: 'Correctly Identified Unique' | 'Correctly Identified Non-Unique' | 'Correctly Identified Impossible' | 'Falsely Claimed Unique' | 'Falsely Claimed Multiple';
     epistemicVerdict?: string;
@@ -72,7 +72,7 @@ export interface ModelRanking {
   provider: string;
   totalRuns: number;
   totalWins: number;
-  winRate: number; // percentage 0-100
+  winRate: number; // raw percentage 0-100
   avgAccuracy: number;
   avgCompleteness: number;
   avgReasoning: number;
@@ -80,6 +80,14 @@ export interface ModelRanking {
   avgLatencyMs: number;
   avgTokensPerSec: number;
   totalCostUsd: number;
+  // Bradley-Terry & Bayesian composite metrics
+  eloRating?: number;
+  btAbility?: number;
+  btScore?: number;
+  compositeScore?: number;
+  isProvisional?: boolean;
+  confidenceInterval?: [number, number];
+  tier?: 'S+' | 'S' | 'A' | 'B' | 'C' | 'Provisional';
 }
 
 export interface BenchmarkStats {
