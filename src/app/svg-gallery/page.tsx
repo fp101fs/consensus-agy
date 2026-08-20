@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { HistoryQueryItem } from '@/types/consensus';
 import { SvgRenderer } from '@/components/SvgRenderer';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   ArrowLeft,
   Palette,
@@ -28,25 +30,32 @@ export default function SvgGalleryPage() {
       const res = await fetch('/api/history');
       if (res.ok) {
         const data = await res.json();
-        // Filter history to items that have SVG responses or SVG benchmark tags
-        const svgRuns = (data.history || []).filter((h: HistoryQueryItem) => {
+        // Filter history to items that produce visual code (SVG, p5.js, Canvas 2D, D3.js)
+        const visualRuns = (data.history || []).filter((h: HistoryQueryItem) => {
           const hasSvgInModel = h.models?.some((m) => m.responseText && m.responseText.includes('<svg'));
-          const isSvgPrompt =
-            h.prompt.toLowerCase().includes('svg') ||
-            h.benchmarkId?.includes('svg') ||
-            h.benchmarkTitle?.toLowerCase().includes('svg') ||
-            h.prompt.toLowerCase().includes('pelican') ||
-            h.prompt.toLowerCase().includes('willem dafoe') ||
-            h.prompt.toLowerCase().includes('pipe organ') ||
-            h.prompt.toLowerCase().includes('bulldozer') ||
-            h.prompt.toLowerCase().includes('steam engine') ||
-            h.prompt.toLowerCase().includes('excavator');
-          return hasSvgInModel || isSvgPrompt;
+          const p = h.prompt.toLowerCase();
+          const t = (h.benchmarkTitle || '').toLowerCase();
+          const isVisualPrompt =
+            p.includes('svg') ||
+            p.includes('p5.js') ||
+            p.includes('canvas') ||
+            p.includes('d3') ||
+            t.includes('svg') ||
+            t.includes('p5') ||
+            t.includes('canvas') ||
+            t.includes('d3') ||
+            p.includes('pelican') ||
+            p.includes('dafoe') ||
+            p.includes('pipe organ') ||
+            p.includes('bulldozer') ||
+            p.includes('steam engine') ||
+            p.includes('excavator');
+          return hasSvgInModel || isVisualPrompt;
         });
-        setHistory(svgRuns);
+        setHistory(visualRuns);
       }
     } catch (e) {
-      console.error('Error fetching SVG gallery:', e);
+      console.error('Error fetching visual gallery:', e);
     } finally {
       setLoading(false);
     }
@@ -58,29 +67,42 @@ export default function SvgGalleryPage() {
 
   // Preset Filters
   const filters = [
-    { id: 'all', label: 'All SVG Vector Art' },
-    { id: 'pelican', label: 'Pelican on Bicycle' },
-    { id: 'dafoe', label: 'Willem Dafoe' },
-    { id: 'tom-gally', label: 'Tom Gally Set (Octopus, Sloth, etc.)' },
+    { id: 'all', label: 'All Visual Art & Code' },
+    { id: 'pelican', label: 'Pelican on Bicycle (SVG)' },
+    { id: 'dafoe', label: 'Willem Dafoe (SVG)' },
+    { id: 'tom-gally', label: 'Tom Gally Set (SVG)' },
+    { id: 'p5', label: 'p5.js Generative Art' },
+    { id: 'd3', label: 'D3.js Data Visualizations' },
+    { id: 'canvas', label: 'HTML5 Canvas 2D Physics' },
   ];
 
   const filteredItems = history.filter((item) => {
+    const p = item.prompt.toLowerCase();
+    const t = (item.benchmarkTitle || '').toLowerCase();
     const matchesSearch =
-      item.prompt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.benchmarkTitle && item.benchmarkTitle.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      p.includes(searchQuery.toLowerCase()) ||
+      t.includes(searchQuery.toLowerCase()) ||
       (item.winnerModelId && item.winnerModelId.toLowerCase().includes(searchQuery.toLowerCase()));
 
     if (!matchesSearch) return false;
 
     if (selectedFilter === 'all') return true;
     if (selectedFilter === 'pelican') {
-      return item.prompt.toLowerCase().includes('pelican');
+      return p.includes('pelican');
     }
     if (selectedFilter === 'dafoe') {
-      return item.prompt.toLowerCase().includes('dafoe');
+      return p.includes('dafoe');
+    }
+    if (selectedFilter === 'p5') {
+      return p.includes('p5.js') || t.includes('p5');
+    }
+    if (selectedFilter === 'd3') {
+      return p.includes('d3') || t.includes('d3');
+    }
+    if (selectedFilter === 'canvas') {
+      return p.includes('canvas') || t.includes('canvas');
     }
     if (selectedFilter === 'tom-gally') {
-      const p = item.prompt.toLowerCase();
       return (
         p.includes('octopus') ||
         p.includes('starfish') ||
@@ -246,13 +268,21 @@ export default function SvgGalleryPage() {
                         )}
                       </div>
 
-                      {/* SVG Visual Body */}
+                      {/* Visual / Code Body */}
                       <div className="p-3 flex-1 flex flex-col justify-center">
-                        <SvgRenderer
-                          content={m.responseText || ''}
-                          title={`${m.modelName} ${item.benchmarkTitle || 'SVG'}`}
-                          className="w-full h-full"
-                        />
+                        {m.responseText && m.responseText.includes('<svg') ? (
+                          <SvgRenderer
+                            content={m.responseText || ''}
+                            title={`${m.modelName} ${item.benchmarkTitle || 'Art'}`}
+                            className="w-full h-full"
+                          />
+                        ) : (
+                          <div className="text-xs text-neutral-300 font-mono overflow-auto max-h-[360px] p-3 rounded-xl bg-neutral-950 border border-neutral-800/80 leading-relaxed">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {m.responseText || '[No code output]'}
+                            </ReactMarkdown>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
