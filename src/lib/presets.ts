@@ -383,7 +383,7 @@ Tasks:
     difficulty: '⭐⭐⭐⭐⭐',
     tags: ['SVG', 'Vector art', 'Tom Gally Set', 'Spatial reasoning', 'Complex composition'],
     description: 'Evaluates complex multi-tentacle spatial reasoning and mechanical keyboard/pipe layout in SVG markup.',
-    prompt: `an octopus operating a pipe organ`,
+    prompt: `Generate an SVG of an octopus operating a pipe organ. Output only valid SVG markup. Do not wrap the SVG in Markdown fences. Do not use external images, links, scripts, CSS imports, or remote assets. Use clean layered vector shapes, tentacles across the keyboards/pedals, organ pipes, gradients, and shading.`,
   },
   {
     id: 'benchmark-svg-starfish-bulldozer',
@@ -393,7 +393,7 @@ Tasks:
     difficulty: '⭐⭐⭐⭐',
     tags: ['SVG', 'Vector art', 'Tom Gally Set', 'Creative', 'Mechanical layout'],
     description: 'Evaluates heavy machinery vector shapes combined with marine anatomy in SVG markup.',
-    prompt: `a starfish driving a bulldozer`,
+    prompt: `Generate an SVG of a starfish driving a bulldozer. Output only valid SVG markup. Do not wrap the SVG in Markdown fences. Do not use external images, links, scripts, CSS imports, or remote assets. Use clean vector shapes for the bulldozer tracks, blade, cabin, and a detailed starfish operating the controls.`,
   },
   {
     id: 'benchmark-svg-butterfly-steam-engine',
@@ -403,7 +403,7 @@ Tasks:
     difficulty: '⭐⭐⭐⭐⭐',
     tags: ['SVG', 'Vector art', 'Tom Gally Set', 'Fine detail', 'Contrast'],
     description: 'Evaluates delicate vector wing patterns juxtaposed against heavy industrial steam engine components.',
-    prompt: `a butterfly inspecting a steam engine`,
+    prompt: `Generate an SVG of a butterfly inspecting a steam engine. Output only valid SVG markup. Do not wrap the SVG in Markdown fences. Do not use external images, links, scripts, CSS imports, or remote assets. Feature intricate wing patterns contrasted against mechanical gears, pistons, boiler, and steam pipes.`,
   },
   {
     id: 'benchmark-svg-sloth-excavator',
@@ -413,7 +413,7 @@ Tasks:
     difficulty: '⭐⭐⭐⭐',
     tags: ['SVG', 'Vector art', 'Tom Gally Set', 'Spatial reasoning', 'Construction'],
     description: 'Evaluates construction equipment geometry and animal posture in SVG markup.',
-    prompt: `a sloth steering an excavator`,
+    prompt: `Generate an SVG of a sloth steering an excavator. Output only valid SVG markup. Do not wrap the SVG in Markdown fences. Do not use external images, links, scripts, CSS imports, or remote assets. Include detailed construction excavator boom, tracks, cabin, and a relaxed sloth holding the control levers.`,
   },
   {
     id: 'benchmark-tokenizer-strawberry-count',
@@ -434,6 +434,51 @@ Tasks:
     tags: ['Tokenizer', 'Character counting', 'Logic smoke test'],
     description: 'Tests character parsing inside multi-letter subwords.',
     prompt: `How many times does the letter ‘e’ appear in the word ‘elephant’?`,
+  },
+  {
+    id: 'benchmark-code-p5-generative-particles',
+    presetKey: 'code-p5-generative-particles',
+    title: 'p5.js Interactive Generative Art & Physics Simulation',
+    category: 'Generative Code & Visual Bench',
+    difficulty: '⭐⭐⭐⭐⭐',
+    tags: ['p5.js', 'Generative Art', 'Simulation', 'Trigonometry', 'Interactive'],
+    description: 'Evaluates vector math, particle physics, and autonomous flocking/flow fields using p5.js.',
+    prompt: `Write a standalone, complete, self-contained p5.js generative art sketch.
+Requirements:
+1. Create a 3D or 2D flow field with 500+ colorful glowing particles that follow a Perlin noise vector field.
+2. Implement interactive mouse gravity or repulsion forces.
+3. Use smooth color transitions based on particle speed or angle.
+4. Provide the complete JavaScript code with setup() and draw() functions ready to run in an iframe or browser canvas.`,
+  },
+  {
+    id: 'benchmark-code-d3-interactive-dataviz',
+    presetKey: 'code-d3-interactive-dataviz',
+    title: 'D3.js Custom Interactive Hierarchical Data Visualization',
+    category: 'Generative Code & Visual Bench',
+    difficulty: '⭐⭐⭐⭐⭐',
+    tags: ['D3.js', 'DataViz', 'SVG transforms', 'Scales & Layouts'],
+    description: 'Evaluates D3.js data binding, domain scales, hierarchical tree/sunburst layout, and tooltips.',
+    prompt: `Write a production-grade, complete standalone D3.js (v7) interactive data visualization.
+Requirements:
+1. Construct an interactive zoomable sunburst partition chart or force-directed network graph representing a sample dataset of 20+ nodes.
+2. Implement smooth D3 transitions, hover tooltips showing node metrics, and zoom/pan SVG transforms.
+3. Define linear/ordinal color scales and responsive SVG viewBox (800x600).
+4. Provide the complete standalone JavaScript code using standard d3.select() and SVG join patterns.`,
+  },
+  {
+    id: 'benchmark-code-canvas-particle-physics',
+    presetKey: 'code-canvas-particle-physics',
+    title: 'HTML5 Canvas API 2D Particle Engine & Collision Simulation',
+    category: 'Generative Code & Visual Bench',
+    difficulty: '⭐⭐⭐⭐',
+    tags: ['Canvas API', '2D Physics', 'Game Dev', 'Animation Loop'],
+    description: 'Evaluates vanilla JavaScript Canvas 2D rendering, 60fps requestAnimationFrame loop, elastic collision physics, and particle emitters.',
+    prompt: `Write a pure vanilla HTML5 Canvas 2D physics simulation with zero external libraries.
+Requirements:
+1. Implement a 60 FPS requestAnimationFrame loop with full canvas resize handling.
+2. Simulate 100+ bouncing elastic particles with gravity, wind, boundary collision restitution, and mass-based momentum exchange.
+3. Add a mouse-click particle fountain/firework explosion with alpha decay trails.
+4. Provide the complete clean JavaScript code using native CanvasRenderingContext2D methods (ctx.arc, ctx.fillStyle, ctx.shadowBlur).`,
   },
 ];
 
