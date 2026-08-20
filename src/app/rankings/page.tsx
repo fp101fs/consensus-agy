@@ -13,11 +13,70 @@ import {
   BrainCircuit,
   Copy,
   Check,
-  ShieldAlert,
-  Info,
+  HelpCircle,
+  X,
+  ExternalLink,
   Scale,
-  Gauge,
 } from 'lucide-react';
+
+interface ColumnHelpInfo {
+  title: string;
+  summary: string;
+  anchor: string;
+}
+
+const COLUMN_HELP: Record<string, ColumnHelpInfo> = {
+  rank: {
+    title: 'Rank Position',
+    summary: 'Sorted by Composite Quality & Bradley-Terry Elo score.',
+    anchor: 'composite-score',
+  },
+  model: {
+    title: 'Model & Provider',
+    summary: 'The model architecture name and upstream provider endpoint.',
+    anchor: 'elo-bt',
+  },
+  elo: {
+    title: 'Bradley–Terry Elo',
+    summary: 'Pairwise competitive power rating based on head-to-head triumphs.',
+    anchor: 'elo-bt',
+  },
+  composite: {
+    title: 'Composite Score',
+    summary: 'Holistic 0-100 rating combining Elo (45%), Quality (35%), and Practicality (20%).',
+    anchor: 'composite-score',
+  },
+  winrate: {
+    title: 'Win Rate %',
+    summary: 'Percentage of rounds where this model was chosen as 1st place champion.',
+    anchor: 'win-rate',
+  },
+  runs: {
+    title: 'Wins / Runs',
+    summary: 'Total first-place finishes out of total arbitrations participated in.',
+    anchor: 'win-rate',
+  },
+  accuracy: {
+    title: 'Average Accuracy',
+    summary: 'Judge-audited factual correctness score (0-100%).',
+    anchor: 'accuracy',
+  },
+  reasoning: {
+    title: 'Average Reasoning',
+    summary: 'Judge-evaluated logical deduction and step-by-step proof rigor.',
+    anchor: 'accuracy',
+  },
+  speed: {
+    title: 'Generation Speed',
+    summary: 'Completion tokens produced per second (sanitized against reporting bugs).',
+    anchor: 'speed',
+  },
+  status: {
+    title: 'Tier & Status',
+    summary: 'Provisional if n < 3 runs; otherwise assigned tier (S+, S, A, B, C).',
+    anchor: 'status-tiers',
+  },
+};
 
 export default function RankingsPage() {
   const [rankings, setRankings] = useState<ModelRanking[]>([]);
@@ -25,6 +84,7 @@ export default function RankingsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overall' | 'by-puzzle'>('overall');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [activeHelpCol, setActiveHelpCol] = useState<string | null>(null);
 
   const fetchRankings = async () => {
     setLoading(true);
@@ -69,11 +129,18 @@ export default function RankingsPage() {
             </Link>
             <h1 className="font-extrabold text-base text-white flex items-center gap-2">
               <Trophy className="w-4 h-4 text-amber-400" />
-              <span>Consensus Leaderboard & Bradley–Terry Elo Rankings</span>
+              <span>Consensus Leaderboard & Bradley–Terry Elo</span>
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/stats"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-800 bg-neutral-900/80 hover:bg-neutral-800 hover:border-amber-500/40 text-xs text-neutral-300 hover:text-white transition"
+            >
+              <Scale className="w-3.5 h-3.5 text-amber-400" />
+              <span>Math & Stats Guide</span>
+            </Link>
             <Link
               href="/usage"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-800 bg-neutral-900/80 hover:bg-neutral-800 text-xs text-neutral-300 hover:text-white transition"
@@ -106,7 +173,10 @@ export default function RankingsPage() {
               <Sparkles className="w-4 h-4 text-amber-400" />
             </h2>
             <p className="text-xs text-neutral-400 max-w-2xl leading-relaxed">
-              Rankings combine <strong>Head-to-Head Bradley–Terry Elo</strong> (45%), <strong>Quality & Accuracy</strong> (35%), and <strong>Speed & Practicality</strong> (20%). Low sample sizes (n &lt; 3 runs) are flagged as <em>Provisional</em> with Bayesian shrinkage so single-test wins don't artificially claim #1 over proven multi-match champions.
+              Rankings combine <strong>Head-to-Head Bradley–Terry Elo</strong> (45%), <strong>Quality & Accuracy</strong> (35%), and <strong>Speed & Practicality</strong> (20%). Low sample sizes (n &lt; 3) are labeled <em>Provisional</em> with Bayesian shrinkage.{' '}
+              <Link href="/stats" className="text-sky-400 hover:underline">
+                Read our simple math guide →
+              </Link>
             </p>
           </div>
 
@@ -198,8 +268,8 @@ export default function RankingsPage() {
               </div>
             )}
 
-            {/* Full Leaderboard Table */}
-            <section className="space-y-4">
+            {/* Full Leaderboard Table with Interactive ? Minimodals */}
+            <section className="space-y-4 relative">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-neutral-200 uppercase tracking-wider flex items-center gap-2">
                   <span>Holistic Leaderboard (Ranked by Bradley–Terry Elo & Composite Quality)</span>
@@ -209,23 +279,163 @@ export default function RankingsPage() {
                 </span>
               </div>
 
-              <div className="bg-neutral-900/60 border border-neutral-800 rounded-3xl overflow-hidden backdrop-blur-sm">
+              <div className="bg-neutral-900/60 border border-neutral-800 rounded-3xl overflow-visible backdrop-blur-sm">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs text-neutral-300">
                     <thead className="bg-neutral-950/80 border-b border-neutral-800 text-[11px] text-neutral-400 uppercase">
                       <tr>
-                        <th className="p-4">Rank</th>
-                        <th className="p-4">Model & Provider</th>
-                        <th className="p-4">Elo (BT)</th>
-                        <th className="p-4">Composite Score</th>
-                        <th className="p-4">Win Rate %</th>
-                        <th className="p-4">Wins / Runs</th>
-                        <th className="p-4">Accuracy</th>
-                        <th className="p-4">Reasoning</th>
-                        <th className="p-4">Speed</th>
-                        <th className="p-4">Status</th>
+                        {/* Rank Header */}
+                        <th className="p-4">
+                          <div className="flex items-center gap-1">
+                            <span>Rank</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHelpCol(activeHelpCol === 'rank' ? null : 'rank')}
+                              className="text-neutral-500 hover:text-amber-400 transition"
+                              title="Click for explanation"
+                            >
+                              <HelpCircle className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </th>
+
+                        {/* Model Header */}
+                        <th className="p-4">
+                          <div className="flex items-center gap-1">
+                            <span>Model & Provider</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHelpCol(activeHelpCol === 'model' ? null : 'model')}
+                              className="text-neutral-500 hover:text-amber-400 transition"
+                              title="Click for explanation"
+                            >
+                              <HelpCircle className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </th>
+
+                        {/* Elo Header */}
+                        <th className="p-4 relative">
+                          <div className="flex items-center gap-1">
+                            <span>Elo (BT)</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHelpCol(activeHelpCol === 'elo' ? null : 'elo')}
+                              className="text-neutral-500 hover:text-amber-400 transition"
+                              title="Click for explanation"
+                            >
+                              <HelpCircle className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </th>
+
+                        {/* Composite Header */}
+                        <th className="p-4 relative">
+                          <div className="flex items-center gap-1">
+                            <span>Composite Score</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHelpCol(activeHelpCol === 'composite' ? null : 'composite')}
+                              className="text-neutral-500 hover:text-amber-400 transition"
+                              title="Click for explanation"
+                            >
+                              <HelpCircle className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </th>
+
+                        {/* Win Rate Header */}
+                        <th className="p-4 relative">
+                          <div className="flex items-center gap-1">
+                            <span>Win Rate %</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHelpCol(activeHelpCol === 'winrate' ? null : 'winrate')}
+                              className="text-neutral-500 hover:text-amber-400 transition"
+                              title="Click for explanation"
+                            >
+                              <HelpCircle className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </th>
+
+                        {/* Wins / Runs Header */}
+                        <th className="p-4 relative">
+                          <div className="flex items-center gap-1">
+                            <span>Wins / Runs</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHelpCol(activeHelpCol === 'runs' ? null : 'runs')}
+                              className="text-neutral-500 hover:text-amber-400 transition"
+                              title="Click for explanation"
+                            >
+                              <HelpCircle className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </th>
+
+                        {/* Accuracy Header */}
+                        <th className="p-4 relative">
+                          <div className="flex items-center gap-1">
+                            <span>Accuracy</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHelpCol(activeHelpCol === 'accuracy' ? null : 'accuracy')}
+                              className="text-neutral-500 hover:text-amber-400 transition"
+                              title="Click for explanation"
+                            >
+                              <HelpCircle className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </th>
+
+                        {/* Reasoning Header */}
+                        <th className="p-4 relative">
+                          <div className="flex items-center gap-1">
+                            <span>Reasoning</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHelpCol(activeHelpCol === 'reasoning' ? null : 'reasoning')}
+                              className="text-neutral-500 hover:text-amber-400 transition"
+                              title="Click for explanation"
+                            >
+                              <HelpCircle className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </th>
+
+                        {/* Speed Header */}
+                        <th className="p-4 relative">
+                          <div className="flex items-center gap-1">
+                            <span>Speed</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHelpCol(activeHelpCol === 'speed' ? null : 'speed')}
+                              className="text-neutral-500 hover:text-amber-400 transition"
+                              title="Click for explanation"
+                            >
+                              <HelpCircle className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </th>
+
+                        {/* Status Header */}
+                        <th className="p-4 relative">
+                          <div className="flex items-center gap-1">
+                            <span>Status</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHelpCol(activeHelpCol === 'status' ? null : 'status')}
+                              className="text-neutral-500 hover:text-amber-400 transition"
+                              title="Click for explanation"
+                            >
+                              <HelpCircle className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </th>
                       </tr>
                     </thead>
+
                     <tbody className="divide-y divide-neutral-800/60 font-sans">
                       {rankings.length > 0 ? (
                         rankings.map((r, idx) => (
@@ -241,7 +451,6 @@ export default function RankingsPage() {
                             <td className="p-4">
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-white">{r.modelName}</span>
-                                {/* Copy Model ID Button on Hover */}
                                 <button
                                   type="button"
                                   onClick={() => handleCopy(r.modelId)}
@@ -339,6 +548,46 @@ export default function RankingsPage() {
                   </table>
                 </div>
               </div>
+
+              {/* Floating Mini-Modal Explanation Popup */}
+              {activeHelpCol && COLUMN_HELP[activeHelpCol] && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/40 backdrop-blur-xs">
+                  <div className="relative max-w-sm w-full bg-neutral-900 border border-neutral-700 rounded-2xl p-5 shadow-2xl space-y-3 animate-fadeIn">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-sm text-white flex items-center gap-1.5">
+                        <HelpCircle className="w-4 h-4 text-amber-400" />
+                        <span>{COLUMN_HELP[activeHelpCol].title}</span>
+                      </h4>
+                      <button
+                        onClick={() => setActiveHelpCol(null)}
+                        className="p-1 rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-white transition"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-neutral-300 leading-relaxed">
+                      {COLUMN_HELP[activeHelpCol].summary}
+                    </p>
+
+                    <div className="pt-2 border-t border-neutral-800 flex items-center justify-between">
+                      <Link
+                        href={`/stats#${COLUMN_HELP[activeHelpCol].anchor}`}
+                        className="text-[11px] text-sky-400 hover:text-sky-300 flex items-center gap-1 font-medium hover:underline"
+                      >
+                        <span>Learn how this is calculated</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </Link>
+                      <button
+                        onClick={() => setActiveHelpCol(null)}
+                        className="px-3 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-semibold"
+                      >
+                        Got it
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           </div>
         )}
