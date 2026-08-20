@@ -232,7 +232,7 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
 
       {/* Model Response Body */}
       <div className="flex-1 p-4 overflow-y-auto max-h-[460px] min-h-[220px] text-sm text-neutral-200 leading-relaxed font-sans space-y-3 relative">
-        {/* Simple animated spinner centered while response is generating */}
+        {/* Animated spinner while generating */}
         {isLoading && !output?.response && (
           <div className="h-full flex flex-col items-center justify-center py-16 text-neutral-400 space-y-3">
             <div className="relative flex items-center justify-center">
@@ -289,7 +289,30 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
           </div>
         )}
 
-        {!isLoading && !hasError && !output?.response && (
+        {/* Empty response fallback after execution completed */}
+        {isCompleted && !output?.response && (
+          <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-800/40 text-xs text-amber-200 space-y-2">
+            <div className="flex items-center gap-1.5 font-bold">
+              <AlertTriangle className="w-4 h-4 text-amber-400" />
+              <span>Empty / Non-Text Output Returned</span>
+            </div>
+            <p className="text-neutral-300 text-[11px] leading-relaxed">
+              The model completed execution but stream tokens were empty or suppressed by the upstream provider.
+            </p>
+            {onRetry && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white text-[11px] font-medium transition"
+              >
+                Retry Model
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Idle initial state */}
+        {!isLoading && !hasError && !isCompleted && !output?.response && (
           <div className="h-full flex flex-col items-center justify-center py-12 text-neutral-600 text-xs italic">
             Waiting for prompt execution...
           </div>

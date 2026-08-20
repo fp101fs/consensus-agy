@@ -108,7 +108,7 @@ You must always structure your response clearly addressing these 4 exact dimensi
       );
     }
 
-    // Stream SSE back to client and pass through usage data if provided by provider
+    // Stream SSE back to client with robust chunk handling for reasoning tokens / text
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
 
@@ -144,7 +144,23 @@ You must always structure your response clearly addressing these 4 exact dimensi
                 try {
                   const jsonStr = trimmed.slice(6);
                   const parsed = JSON.parse(jsonStr);
-                  const content = parsed.choices?.[0]?.delta?.content || '';
+                  const choice = parsed.choices?.[0];
+                  
+                  // Extract content or reasoning tokens across different model providers
+                  const delta = choice?.delta;
+                  let content = '';
+                  if (delta?.content) {
+                    content = delta.content;
+                  } else if (delta?.reasoning) {
+                    content = delta.reasoning;
+                  } else if (delta?.thought) {
+                    content = delta.thought;
+                  } else if (choice?.text) {
+                    content = choice.text;
+                  } else if (choice?.message?.content) {
+                    content = choice.message.content;
+                  }
+
                   const usage = parsed.usage;
 
                   if (content || usage) {
