@@ -1,0 +1,105 @@
+import { LLMConfig } from '@/types/consensus';
+
+export const DEFAULT_MODELS: [LLMConfig, LLMConfig, LLMConfig] = [
+  {
+    id: 'openai/gpt-4o',
+    name: 'GPT-4o',
+    provider: 'OpenAI',
+    tag: 'Flagship Multimodal',
+    color: 'emerald',
+    badgeBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+    borderColor: 'border-emerald-500/40',
+  },
+  {
+    id: 'anthropic/claude-3.5-sonnet',
+    name: 'Claude 3.5 Sonnet',
+    provider: 'Anthropic',
+    tag: 'Superior Reasoning',
+    color: 'amber',
+    badgeBg: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+    borderColor: 'border-amber-500/40',
+  },
+  {
+    id: 'google/gemini-2.0-flash-001',
+    name: 'Gemini 2.0 Flash',
+    provider: 'Google',
+    tag: 'High-speed Intelligence',
+    color: 'sky',
+    badgeBg: 'bg-sky-500/10 text-sky-400 border-sky-500/30',
+    borderColor: 'border-sky-500/40',
+  },
+];
+
+export const AVAILABLE_MODELS_LIST: LLMConfig[] = [
+  {
+    id: 'openai/gpt-4o',
+    name: 'GPT-4o',
+    provider: 'OpenAI',
+    tag: 'Flagship Multimodal',
+    color: 'emerald',
+    badgeBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+    borderColor: 'border-emerald-500/40',
+  },
+  {
+    id: 'openai/gpt-4o-mini',
+    name: 'GPT-4o Mini',
+    provider: 'OpenAI',
+    tag: 'Fast & Lightweight',
+    color: 'emerald',
+    badgeBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+    borderColor: 'border-emerald-500/40',
+  },
+  {
+    id: 'anthropic/claude-3.5-sonnet',
+    name: 'Claude 3.5 Sonnet',
+    provider: 'Anthropic',
+    tag: 'Superior Reasoning',
+    color: 'amber',
+    badgeBg: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+    borderColor: 'border-amber-500/40',
+  },
+  {
+    id: 'google/gemini-2.0-flash-001',
+    name: 'Gemini 2.0 Flash',
+    provider: 'Google',
+    tag: 'High-speed Intelligence',
+    color: 'sky',
+    badgeBg: 'bg-sky-500/10 text-sky-400 border-sky-500/30',
+    borderColor: 'border-sky-500/40',
+  },
+  {
+    id: 'meta-llama/llama-3.3-70b-instruct',
+    name: 'Llama 3.3 70B',
+    provider: 'Meta',
+    tag: 'Open-Weight Powerhouse',
+    color: 'purple',
+    badgeBg: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+    borderColor: 'border-purple-500/40',
+  },
+  {
+    id: 'deepseek/deepseek-r1',
+    name: 'DeepSeek R1',
+    provider: 'DeepSeek',
+    tag: 'Deep Reasoning Chains',
+    color: 'blue',
+    badgeBg: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+    borderColor: 'border-blue-500/40',
+  },
+  {
+    id: 'mistralai/mistral-large-2411',
+    name: 'Mistral Large 2',
+    provider: 'Mistral AI',
+    tag: 'Advanced Multilingual',
+    color: 'orange',
+    badgeBg: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
+    borderColor: 'border-orange-500/40',
+  },
+];
+
+export const JUDGE_MODEL_CONFIG = {
+  id: 'perplexity/sonar-reasoning-pro',
+  fallbackId: 'openai/gpt-4o',
+  name: 'Perplexity Sonar Reasoning / Judge AI',
+  provider: 'Perplexity / OpenRouter',
+  tag: 'Realtime Web Search & Cross-Verification',
+};
