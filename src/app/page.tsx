@@ -24,6 +24,7 @@ import {
   StopCircle,
   Brain,
   BookOpen,
+  Palette,
 } from 'lucide-react';
 
 export default function ConsensusArenaPage() {
@@ -435,6 +436,16 @@ export default function ConsensusArenaPage() {
             >
               <Trophy className="w-3.5 h-3.5 text-amber-400" />
               <span>Rankings</span>
+            </Link>
+
+            {/* DafoeBench SVG Arena Link */}
+            <Link
+              href="/dafoe"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-800/60 bg-purple-950/30 hover:bg-purple-900/40 hover:border-purple-500/50 text-xs text-purple-300 hover:text-white transition shadow-sm"
+              title="DafoeBench: Side-by-side SVG vector portrait benchmark"
+            >
+              <Palette className="w-3.5 h-3.5 text-purple-400" />
+              <span className="font-semibold">DafoeBench</span>
             </Link>
 
             {/* History Link */}

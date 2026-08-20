@@ -19,6 +19,7 @@ import {
   Gauge,
   Check,
 } from 'lucide-react';
+import { SvgRenderer } from './SvgRenderer';
 
 interface ModelColumnProps {
   config: LLMConfig;
@@ -319,10 +320,16 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
         )}
 
         {output?.response && (
-          <div className="prose prose-invert prose-sm max-w-none text-neutral-200 prose-pre:bg-neutral-950 prose-pre:border prose-pre:border-neutral-800 prose-headings:text-neutral-100">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {output.response}
-            </ReactMarkdown>
+          <div className="space-y-3">
+            {/* If SVG code is detected, show interactive Visual SVG Renderer */}
+            <SvgRenderer content={output.response} title={`${config.name} Vector Output`} />
+            
+            {/* Markdown textual response or code fallback */}
+            <div className="prose prose-invert prose-sm max-w-none text-neutral-200 prose-pre:bg-neutral-950 prose-pre:border prose-pre:border-neutral-800 prose-headings:text-neutral-100">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {output.response}
+              </ReactMarkdown>
+            </div>
           </div>
         )}
       </div>

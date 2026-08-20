@@ -355,6 +355,16 @@ Tasks:
 2. Outline the Principle of Least Privilege and how scoping queries by \`organization_id\` / user permissions prevents IDOR.
 3. Rewrite the handler in Go with comprehensive tenancy checks and role-based confidentiality enforcement.`,
   },
+  {
+    id: 'benchmark-dafoe-svg-portrait',
+    presetKey: 'dafoe-svg-portrait',
+    title: "Willem Dafoe SVG Vector Portrait (BuseyBench Style)",
+    category: 'Creative Vector & SVG Bench',
+    difficulty: '⭐⭐⭐⭐⭐',
+    tags: ['SVG', 'Vector art', 'Spatial reasoning', 'BuseyBench', 'Creative'],
+    description: "Evaluates model spatial reasoning, Bézier curve construction, and pure vector rendering by drawing a recognizable 1024x1024 SVG portrait of Willem Dafoe's face.",
+    prompt: `Create a standalone SVG portrait of Willem Dafoe's face. Output only valid SVG markup. Do not wrap the SVG in Markdown fences. Do not use external images, links, scripts, CSS imports, or remote assets. Make the portrait recognizable as Willem Dafoe using vector shapes only. Include face shape, hair, eyes, eyebrows, nose, mouth, teeth, and expressive features. Use a 1024 by 1024 viewBox. Use detailed SVG-native vector techniques: layered paths, gradients, masks, clipping paths, shadows, highlights, blur filters, opacity, and fine strokes. The portrait should be as recognizable and detailed as possible.`,
+  },
 ];
 
 // Helper to compute prompt fingerprint / benchmark match
