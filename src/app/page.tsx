@@ -23,7 +23,6 @@ import {
   History,
   StopCircle,
   Brain,
-  LayoutGrid,
 } from 'lucide-react';
 
 export default function ConsensusArenaPage() {
@@ -257,30 +256,27 @@ export default function ConsensusArenaPage() {
       };
     } catch (err: unknown) {
       delete abortControllersRef.current[model.id];
-      if (err instanceof Error && err.name === 'AbortError') {
-        return {
-          modelId: model.id,
-          modelName: model.name,
-          response: '[Cancelled by user]',
-        };
-      }
-
       const errorMsg = err instanceof Error ? err.message : 'Unknown execution error';
+      
+      const errorOutput: ModelOutput = {
+        modelId: model.id,
+        modelName: model.name,
+        provider: model.provider,
+        response: '',
+        status: err instanceof Error && err.name === 'AbortError' ? 'cancelled' : 'error',
+        error: errorMsg,
+      };
+
       setModelOutputs((prev) => ({
         ...prev,
-        [model.id]: {
-          modelId: model.id,
-          modelName: model.name,
-          provider: model.provider,
-          response: '',
-          status: 'error',
-          error: errorMsg,
-        },
+        [model.id]: errorOutput,
       }));
+
       return {
         modelId: model.id,
         modelName: model.name,
-        response: `[Error: ${errorMsg}]`,
+        response: `[${errorMsg}]`,
+        output: errorOutput,
       };
     }
   };
@@ -302,6 +298,14 @@ export default function ConsensusArenaPage() {
 
     const completedResults = await Promise.all(promises);
     setIsModelsStreaming(false);
+
+    // Map completed outputs directly from return values to guarantee latest state
+    const latestOutputs: Record<string, ModelOutput> = {};
+    completedResults.forEach((r) => {
+      if (r.output) {
+        latestOutputs[r.modelId] = r.output;
+      }
+    });
 
     // Now trigger the 4th Judge AI LLM with fact-checking & quantitative synthesis
     setIsJudging(true);
@@ -332,12 +336,12 @@ export default function ConsensusArenaPage() {
 
       // Record full consensus query & metrics to PostgreSQL DB
       const totalElapsedMs = Date.now() - overallStartTime;
-      fetch('/api/record-run', {
+      await fetch('/api/record-run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: promptToSubmit,
-          modelOutputs: modelOutputs,
+          modelOutputs: latestOutputs,
           judgeReport: report,
           totalLatencyMs: totalElapsedMs,
         }),
