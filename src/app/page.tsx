@@ -4,9 +4,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { LLMConfig, ModelOutput, ConsensusJudgeReport } from '@/types/consensus';
 import { DEFAULT_MODELS, AVAILABLE_MODELS_LIST, JUDGE_MODEL_CONFIG } from '@/lib/models';
+import { BENCHMARK_PRESET_PROMPTS, PresetPrompt } from '@/lib/presets';
 import { ModelColumn } from '@/components/ModelColumn';
 import { JudgeVerdict } from '@/components/JudgeVerdict';
 import { SettingsModal } from '@/components/SettingsModal';
+import { PresetsModal } from '@/components/PresetsModal';
 import { UsageWidget } from '@/components/UsageWidget';
 import { estimateTokens, calculateCost } from '@/lib/pricing';
 import {
@@ -20,14 +22,9 @@ import {
   Trophy,
   History,
   StopCircle,
+  Brain,
+  LayoutGrid,
 } from 'lucide-react';
-
-const PRESET_PROMPTS = [
-  "Compare Next.js App Router vs Remix for enterprise real-time dashboards with SSR.",
-  "What was the exact revenue of NVIDIA in Q3 FY2025 and what drove the growth?",
-  "Should a modern startup choose PostgreSQL with pgvector or dedicated Pinecone/Qdrant for semantic search?",
-  "Solve this logic puzzle: A farmer needs to cross a river with a wolf, a goat, and a cabbage in a boat with limited capacity.",
-];
 
 export default function ConsensusArenaPage() {
   const [prompt, setPrompt] = useState('');
@@ -39,6 +36,7 @@ export default function ConsensusArenaPage() {
   const [isJudging, setIsJudging] = useState(false);
   const [judgeError, setJudgeError] = useState<string | undefined>();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [presetsModalOpen, setPresetsModalOpen] = useState(false);
   const [userApiKey, setUserApiKey] = useState('');
   const [judgeModelId, setJudgeModelId] = useState(JUDGE_MODEL_CONFIG.id);
   const [isFetchingCatalog, setIsFetchingCatalog] = useState(false);
@@ -356,6 +354,13 @@ export default function ConsensusArenaPage() {
     }
   };
 
+  const handleSelectPreset = (selectedText: string, autoRun = false) => {
+    setPrompt(selectedText);
+    if (autoRun) {
+      handleRunConsensus(selectedText);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
@@ -489,22 +494,26 @@ export default function ConsensusArenaPage() {
               </div>
             </div>
 
-            {/* Quick Example Presets */}
+            {/* Quick Example Presets Pill Carousel + Modal Trigger */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
-              <span className="text-neutral-500 text-[11px] font-medium shrink-0 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-indigo-400" /> Presets:
-              </span>
-              {PRESET_PROMPTS.map((preset, idx) => (
+              <button
+                onClick={() => setPresetsModalOpen(true)}
+                className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 rounded-full text-indigo-300 hover:text-white font-bold text-[11px] shrink-0 flex items-center gap-1.5 transition shadow-sm"
+              >
+                <Brain className="w-3.5 h-3.5 text-indigo-400" />
+                <span>All Benchmark Presets ({BENCHMARK_PRESET_PROMPTS.length})</span>
+              </button>
+
+              {BENCHMARK_PRESET_PROMPTS.slice(0, 8).map((preset) => (
                 <button
-                  key={idx}
-                  onClick={() => {
-                    setPrompt(preset);
-                    handleRunConsensus(preset);
-                  }}
+                  key={preset.id}
+                  onClick={() => handleSelectPreset(preset.prompt, false)}
                   disabled={isModelsStreaming || isJudging}
-                  className="px-3 py-1 bg-neutral-950/80 hover:bg-neutral-800 border border-neutral-800/80 rounded-full text-neutral-300 hover:text-white text-[11px] whitespace-nowrap transition"
+                  title={`${preset.title} • [${preset.category}]`}
+                  className="px-3 py-1.5 bg-neutral-950/80 hover:bg-neutral-800 border border-neutral-800/80 rounded-full text-neutral-300 hover:text-white text-[11px] whitespace-nowrap transition flex items-center gap-1.5"
                 >
-                  {preset.length > 42 ? preset.substring(0, 42) + '...' : preset}
+                  <span>{preset.title.length > 28 ? preset.title.substring(0, 28) + '...' : preset.title}</span>
+                  <span className="text-[10px] text-indigo-400 font-mono">[{preset.category}]</span>
                 </button>
               ))}
             </div>
@@ -588,6 +597,13 @@ export default function ConsensusArenaPage() {
         availableModels={availableModels}
         onRefreshModels={() => fetchCatalog()}
         isRefreshingModels={isFetchingCatalog}
+      />
+
+      {/* Presets Modal */}
+      <PresetsModal
+        isOpen={presetsModalOpen}
+        onClose={() => setPresetsModalOpen(false)}
+        onSelectPrompt={(selectedText) => handleSelectPreset(selectedText, false)}
       />
     </div>
   );
