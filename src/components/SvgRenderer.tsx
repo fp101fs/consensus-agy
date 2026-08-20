@@ -58,6 +58,16 @@ export const SvgRenderer: React.FC<SvgRendererProps> = ({ content, className = '
     return null;
   }
 
+  // Convert SVG code into a clean data URI or blob URL for sandboxed rendering
+  const svgDataUrl = useMemo(() => {
+    if (!svgCode) return null;
+    try {
+      return `data:image/svg+xml;utf8,${encodeURIComponent(svgCode)}`;
+    } catch {
+      return null;
+    }
+  }, [svgCode]);
+
   return (
     <div className={`rounded-2xl border border-neutral-800 bg-neutral-950/80 overflow-hidden flex flex-col ${className}`}>
       {/* Header bar */}
@@ -138,8 +148,29 @@ export const SvgRenderer: React.FC<SvgRendererProps> = ({ content, className = '
           <div
             className="w-full h-full flex items-center justify-center transition-transform"
             style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'center center' }}
-            dangerouslySetInnerHTML={{ __html: svgCode }}
-          />
+          >
+            {svgDataUrl ? (
+              <img
+                src={svgDataUrl}
+                alt={title}
+                className="max-h-[400px] max-w-full object-contain pointer-events-none select-none"
+                onError={(e) => {
+                  // Fallback to sandboxed iframe or visual error if image decoding fails on malformed LLM vectors
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent && !parent.querySelector('.svg-error-fallback')) {
+                    const fallback = document.createElement('div');
+                    fallback.className = 'svg-error-fallback text-xs text-amber-400 flex items-center gap-1.5 p-3 rounded-xl bg-amber-950/20 border border-amber-500/30';
+                    fallback.innerHTML = '<span>⚠️ Malformed coordinate syntax in model output</span>';
+                    parent.appendChild(fallback);
+                  }
+                }}
+              />
+            ) : (
+              <div className="text-xs text-neutral-500">Unable to preview SVG</div>
+            )}
+          </div>
         ) : (
           <pre className="text-[11px] font-mono text-neutral-300 w-full h-full overflow-auto p-2 bg-neutral-950 rounded-xl border border-neutral-800/80 select-all leading-relaxed">
             <code>{svgCode}</code>
