@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Key, Sparkles, X, Check } from 'lucide-react';
+import { Settings, Key, Sparkles, X, Check, RefreshCw } from 'lucide-react';
 import { LLMConfig } from '@/types/consensus';
 
 interface SettingsModalProps {
@@ -12,6 +12,8 @@ interface SettingsModalProps {
   judgeModelId: string;
   onSaveJudgeModel: (modelId: string) => void;
   availableModels: LLMConfig[];
+  onRefreshModels?: () => void;
+  isRefreshingModels?: boolean;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -22,6 +24,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   judgeModelId,
   onSaveJudgeModel,
   availableModels,
+  onRefreshModels,
+  isRefreshingModels = false,
 }) => {
   const [apiKey, setApiKey] = useState(userApiKey);
   const [judgeModel, setJudgeModel] = useState(judgeModelId);
@@ -41,7 +45,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setTimeout(() => {
       setSaved(false);
       onClose();
-    }, 800);
+    }, 600);
   };
 
   return (
@@ -63,9 +67,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div className="p-6 space-y-5 text-sm text-neutral-200">
           {/* API Key */}
           <div className="space-y-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
-              <Key className="w-3.5 h-3.5 text-amber-400" />
-              <span>OpenRouter API Key (Optional client override)</span>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-amber-400" />
+                <span>OpenRouter API Key</span>
+              </span>
+              {onRefreshModels && (
+                <button
+                  type="button"
+                  onClick={onRefreshModels}
+                  disabled={isRefreshingModels}
+                  className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 hover:underline lowercase"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isRefreshingModels ? 'animate-spin' : ''}`} />
+                  <span>sync catalog</span>
+                </button>
+              )}
             </label>
             <input
               type="password"
@@ -75,7 +92,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 font-mono"
             />
             <p className="text-[11px] text-neutral-400 leading-relaxed">
-              If not provided, the app will use the <code className="bg-neutral-800 px-1 py-0.5 rounded text-neutral-300">OPENROUTER_API_KEY</code> configured in your environment / Vercel deployment.
+              If not set here, uses <code className="bg-neutral-800 px-1 py-0.5 rounded text-neutral-300">OPENROUTER_API_KEY</code> configured in environment/Vercel.
             </p>
           </div>
 
@@ -90,21 +107,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               onChange={(e) => setJudgeModel(e.target.value)}
               className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
             >
-              <option value="perplexity/sonar-reasoning-pro">
-                Perplexity Sonar Reasoning Pro (Live Web Search + Verification)
-              </option>
-              <option value="perplexity/sonar">
-                Perplexity Sonar (Fast Web Grounded)
-              </option>
-              <option value="openai/gpt-4o">
-                OpenAI GPT-4o (Deep Multimodal Reasoning)
-              </option>
-              <option value="anthropic/claude-3.5-sonnet">
-                Anthropic Claude 3.5 Sonnet (Nuanced Analytical Judge)
-              </option>
-              <option value="deepseek/deepseek-r1">
-                DeepSeek R1 (Exhaustive Chain-of-Thought Judge)
-              </option>
+              <optgroup label="Search-Grounded & Verification Models">
+                <option value="perplexity/sonar-reasoning-pro">
+                  Perplexity Sonar Reasoning Pro (Deep Online Search & Verification)
+                </option>
+                <option value="perplexity/sonar">
+                  Perplexity Sonar (Online Fact Search)
+                </option>
+              </optgroup>
+              <optgroup label="Deep Reasoning & Foundation Models">
+                <option value="openai/gpt-4o">OpenAI GPT-4o</option>
+                <option value="anthropic/claude-3.5-sonnet">Anthropic Claude 3.5 Sonnet</option>
+                <option value="deepseek/deepseek-r1">DeepSeek R1</option>
+                <option value="google/gemini-2.0-flash-001">Google Gemini 2.0 Flash</option>
+              </optgroup>
+              {availableModels.length > 0 && (
+                <optgroup label="All Catalog Models">
+                  {availableModels.map((m) => (
+                    <option key={`judge-${m.id}`} value={m.id}>
+                      {m.name} ({m.provider})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
             <p className="text-[11px] text-neutral-400">
               Perplexity Sonar provides online search grounding and live citations to verify conflicting facts.

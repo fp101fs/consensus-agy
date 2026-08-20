@@ -11,11 +11,9 @@ import {
   Send,
   Sliders,
   Scale,
-  RefreshCw,
   Zap,
-  Info,
   ShieldCheck,
-  CheckCircle2,
+  RefreshCw,
 } from 'lucide-react';
 
 const PRESET_PROMPTS = [
@@ -27,6 +25,7 @@ const PRESET_PROMPTS = [
 
 export default function ConsensusArenaPage() {
   const [prompt, setPrompt] = useState('');
+  const [availableModels, setAvailableModels] = useState<LLMConfig[]>(AVAILABLE_MODELS_LIST);
   const [activeModels, setActiveModels] = useState<[LLMConfig, LLMConfig, LLMConfig]>(DEFAULT_MODELS);
   const [modelOutputs, setModelOutputs] = useState<Record<string, ModelOutput>>({});
   const [judgeReport, setJudgeReport] = useState<ConsensusJudgeReport | null>(null);
@@ -36,20 +35,55 @@ export default function ConsensusArenaPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [userApiKey, setUserApiKey] = useState('');
   const [judgeModelId, setJudgeModelId] = useState(JUDGE_MODEL_CONFIG.id);
+  const [isFetchingCatalog, setIsFetchingCatalog] = useState(false);
 
   const verdictRef = useRef<HTMLDivElement>(null);
 
-  // Load user API key from localStorage if available
+  const fetchCatalog = async (apiKeyOverride?: string) => {
+    setIsFetchingCatalog(true);
+    try {
+      const headers: Record<string, string> = {};
+      const key = apiKeyOverride || userApiKey;
+      if (key) {
+        headers['Authorization'] = `Bearer ${key}`;
+      }
+
+      const res = await fetch('/api/models', { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.models) && data.models.length > 0) {
+          setAvailableModels(data.models);
+
+          // Update active models if current IDs match loaded models
+          setActiveModels((prev) => {
+            return prev.map((curr) => {
+              const matched = data.models.find((m: LLMConfig) => m.id === curr.id);
+              return matched || curr;
+            }) as [LLMConfig, LLMConfig, LLMConfig];
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to dynamically fetch OpenRouter catalog:', err);
+    } finally {
+      setIsFetchingCatalog(false);
+    }
+  };
+
   useEffect(() => {
-    const storedKey = localStorage.getItem('consensus_openrouter_api_key');
-    const storedJudge = localStorage.getItem('consensus_judge_model_id');
+    const storedKey = localStorage.getItem('consensus_openrouter_api_key') || '';
+    const storedJudge = localStorage.getItem('consensus_judge_model_id') || JUDGE_MODEL_CONFIG.id;
     if (storedKey) setUserApiKey(storedKey);
     if (storedJudge) setJudgeModelId(storedJudge);
+
+    // Initial fetch of fresh OpenRouter models catalog
+    fetchCatalog(storedKey);
   }, []);
 
   const handleSaveApiKey = (key: string) => {
     setUserApiKey(key);
     localStorage.setItem('consensus_openrouter_api_key', key);
+    fetchCatalog(key);
   };
 
   const handleSaveJudgeModel = (modelId: string) => {
@@ -58,7 +92,7 @@ export default function ConsensusArenaPage() {
   };
 
   const handleModelChange = (index: number, newModelId: string) => {
-    const selected = AVAILABLE_MODELS_LIST.find((m) => m.id === newModelId);
+    const selected = availableModels.find((m) => m.id === newModelId);
     if (!selected) return;
     const newModels = [...activeModels] as [LLMConfig, LLMConfig, LLMConfig];
     newModels[index] = selected;
@@ -129,7 +163,7 @@ export default function ConsensusArenaPage() {
                 }));
               }
             } catch {
-              // Ignore single malformed chunk
+              // Pass on single malformed chunk
             }
           }
         }
@@ -247,16 +281,25 @@ export default function ConsensusArenaPage() {
                   Consensus Arena
                 </span>
                 <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  Side-by-Side + Judge AI
+                  Live Catalog ({availableModels.length} models)
                 </span>
               </div>
               <p className="text-[11px] text-neutral-400">
-                Cross-reference 3 independent LLMs to eliminate hallucinations & verify truth
+                Cross-reference 3 independent LLMs simultaneously to eliminate hallucinations
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => fetchCatalog()}
+              disabled={isFetchingCatalog}
+              title="Refresh OpenRouter live model catalog"
+              className="p-2 rounded-xl border border-neutral-800 bg-neutral-900/80 hover:bg-neutral-800 text-xs text-neutral-300 hover:text-white transition"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isFetchingCatalog ? 'animate-spin' : ''}`} />
+            </button>
+
             <button
               onClick={() => setSettingsOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-800 bg-neutral-900/80 hover:bg-neutral-800 text-xs text-neutral-300 hover:text-white transition"
@@ -345,7 +388,7 @@ export default function ConsensusArenaPage() {
               </span>
             </div>
             <p className="text-xs text-neutral-500 hidden md:block">
-              Choose different models per column or leave default flagships
+              Click any model title to search & select from {availableModels.length}+ live models
             </p>
           </div>
 
@@ -363,7 +406,7 @@ export default function ConsensusArenaPage() {
                   evaluation={evaluation}
                   isWinner={isWinner}
                   onModelSelect={(newId) => handleModelChange(index, newId)}
-                  availableModels={AVAILABLE_MODELS_LIST}
+                  availableModels={availableModels}
                   disabled={isModelsStreaming || isJudging}
                 />
               );
@@ -403,7 +446,9 @@ export default function ConsensusArenaPage() {
         onSaveApiKey={handleSaveApiKey}
         judgeModelId={judgeModelId}
         onSaveJudgeModel={handleSaveJudgeModel}
-        availableModels={AVAILABLE_MODELS_LIST}
+        availableModels={availableModels}
+        onRefreshModels={() => fetchCatalog()}
+        isRefreshingModels={isFetchingCatalog}
       />
     </div>
   );
