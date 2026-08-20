@@ -1,12 +1,11 @@
 import { NextRequest } from 'next/server';
 import { getDbPool, initDbSchema } from '@/lib/db';
 import { ConsensusJudgeReport, ModelOutput } from '@/types/consensus';
-import { estimateTokens, calculateCost } from '@/lib/pricing';
+import { estimateTokens, calculateCost, calculateSanitizedSpeed } from '@/lib/pricing';
 import { getPromptBenchmarkId } from '@/lib/presets';
 
 export const runtime = 'nodejs';
 
-// System prompt enforcing 4-part metacognitive protocol
 const CANDIDATE_SYSTEM_PROMPT = `You are an elite reasoning model competing in a rigorous benchmark arbitration.
 You must always structure your response clearly addressing these 4 exact dimensions:
 
@@ -169,11 +168,13 @@ export async function POST(req: NextRequest) {
           '';
 
         const explicitPrompt = data.usage?.prompt_tokens ?? promptTokens;
-        const explicitCompletion = data.usage?.completion_tokens ?? estimateTokens(responseText);
-        const totalTok = explicitPrompt + explicitCompletion;
-        const durationSec = Math.max(0.05, latencyMs / 1000);
-        const tokensPerSec = explicitCompletion / durationSec;
-        const costUsd = calculateCost(modelId, explicitPrompt, explicitCompletion);
+        const { tokens: completionTokens, tokensPerSec } = calculateSanitizedSpeed(
+          responseText,
+          data.usage?.completion_tokens,
+          latencyMs
+        );
+        const totalTok = explicitPrompt + completionTokens;
+        const costUsd = calculateCost(modelId, explicitPrompt, completionTokens);
 
         return {
           modelId,
@@ -183,10 +184,10 @@ export async function POST(req: NextRequest) {
           status: 'completed',
           latencyMs,
           promptTokens: explicitPrompt,
-          completionTokens: explicitCompletion,
+          completionTokens,
           totalTokens: totalTok,
           costUsd,
-          tokensPerSec: Number(tokensPerSec.toFixed(1)),
+          tokensPerSec,
         };
       } catch (err: unknown) {
         const latencyMs = Date.now() - startTime;
