@@ -19,6 +19,7 @@ import {
   Scale,
   Bot,
 } from 'lucide-react';
+import { SvgRenderer } from '@/components/SvgRenderer';
 
 export default function HistoryPage() {
   const [history, setHistory] = useState<HistoryQueryItem[]>([]);
@@ -212,7 +213,8 @@ export default function HistoryPage() {
                                 </span>
                               </div>
 
-                              <div className="text-xs text-neutral-300 flex-1 overflow-y-auto max-h-48 font-sans leading-relaxed prose prose-invert prose-xs">
+                              <div className="text-xs text-neutral-300 flex-1 overflow-y-auto max-h-80 font-sans leading-relaxed prose prose-invert prose-xs space-y-2">
+                                <SvgRenderer content={m.responseText} title={m.modelName} />
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                   {m.responseText || '[No response]'}
                                 </ReactMarkdown>
