@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { LLMConfig } from '@/types/consensus';
 
 export const runtime = 'nodejs';
-export const revalidate = 3600; // Cache for 1 hour on server side
+export const revalidate = 3600;
 
 function getProviderInfo(modelId: string, name: string) {
   const lower = (modelId + ' ' + name).toLowerCase();
@@ -104,7 +104,6 @@ export async function GET(req: NextRequest) {
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
-    // Fetch live catalog from OpenRouter
     const res = await fetch('https://openrouter.ai/api/v1/models', {
       headers,
       next: { revalidate: 3600 },
@@ -127,15 +126,12 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Map and enrich models
-    const models: (LLMConfig & {
-      contextLength?: number;
-      isFree?: boolean;
-      promptPrice?: number;
-      completionPrice?: number;
-    })[] = data
+    // Filter out batch-only endpoints and non-text modalities
+    const models: LLMConfig[] = data
       .filter((m: any) => {
-        // Filter out audio-only or image-generation-only if modalities exist
+        if (!m.id) return false;
+        if (m.id.endsWith(':batch')) return false;
+        if (m.id.startsWith('~')) return false; // filter experimental aliases
         if (m.architecture?.modality && !m.architecture.modality.includes('text->text')) {
           return false;
         }
@@ -162,10 +158,6 @@ export async function GET(req: NextRequest) {
           color: providerInfo.color,
           badgeBg: providerInfo.badgeBg,
           borderColor: providerInfo.borderColor,
-          contextLength: m.context_length,
-          isFree,
-          promptPrice,
-          completionPrice,
         };
       });
 

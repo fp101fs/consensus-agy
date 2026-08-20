@@ -1,5 +1,6 @@
 import { LLMConfig } from '@/types/consensus';
 
+// Modern defaults verified against active live OpenRouter endpoints
 export const DEFAULT_MODELS: [LLMConfig, LLMConfig, LLMConfig] = [
   {
     id: 'openai/gpt-4o',
@@ -11,8 +12,8 @@ export const DEFAULT_MODELS: [LLMConfig, LLMConfig, LLMConfig] = [
     borderColor: 'border-emerald-500/40',
   },
   {
-    id: 'anthropic/claude-3.5-sonnet',
-    name: 'Claude 3.5 Sonnet',
+    id: 'anthropic/claude-sonnet-4.5',
+    name: 'Claude Sonnet',
     provider: 'Anthropic',
     tag: 'Superior Reasoning',
     color: 'amber',
@@ -20,8 +21,8 @@ export const DEFAULT_MODELS: [LLMConfig, LLMConfig, LLMConfig] = [
     borderColor: 'border-amber-500/40',
   },
   {
-    id: 'google/gemini-2.0-flash-001',
-    name: 'Gemini 2.0 Flash',
+    id: 'google/gemini-2.5-flash',
+    name: 'Gemini Flash',
     provider: 'Google',
     tag: 'High-speed Intelligence',
     color: 'sky',
@@ -44,14 +45,14 @@ export const AVAILABLE_MODELS_LIST: LLMConfig[] = [
     id: 'openai/gpt-4o-mini',
     name: 'GPT-4o Mini',
     provider: 'OpenAI',
-    tag: 'Fast & Lightweight',
+    tag: 'Fast & Efficient',
     color: 'emerald',
     badgeBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
     borderColor: 'border-emerald-500/40',
   },
   {
-    id: 'anthropic/claude-3.5-sonnet',
-    name: 'Claude 3.5 Sonnet',
+    id: 'anthropic/claude-sonnet-4.5',
+    name: 'Claude Sonnet',
     provider: 'Anthropic',
     tag: 'Superior Reasoning',
     color: 'amber',
@@ -59,8 +60,8 @@ export const AVAILABLE_MODELS_LIST: LLMConfig[] = [
     borderColor: 'border-amber-500/40',
   },
   {
-    id: 'google/gemini-2.0-flash-001',
-    name: 'Gemini 2.0 Flash',
+    id: 'google/gemini-2.5-flash',
+    name: 'Gemini Flash',
     provider: 'Google',
     tag: 'High-speed Intelligence',
     color: 'sky',
@@ -99,7 +100,7 @@ export const AVAILABLE_MODELS_LIST: LLMConfig[] = [
 export const JUDGE_MODEL_CONFIG = {
   id: 'perplexity/sonar-reasoning-pro',
   fallbackId: 'openai/gpt-4o',
-  name: 'Perplexity Sonar Reasoning / Judge AI',
-  provider: 'Perplexity / OpenRouter',
+  name: 'Perplexity Sonar Reasoning Pro',
+  provider: 'Perplexity',
   tag: 'Realtime Web Search & Cross-Verification',
 };

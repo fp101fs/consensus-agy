@@ -43,7 +43,7 @@ export default function ConsensusArenaPage() {
     setIsFetchingCatalog(true);
     try {
       const headers: Record<string, string> = {};
-      const key = apiKeyOverride || userApiKey;
+      const key = apiKeyOverride !== undefined ? apiKeyOverride : userApiKey;
       if (key) {
         headers['Authorization'] = `Bearer ${key}`;
       }
@@ -54,11 +54,15 @@ export default function ConsensusArenaPage() {
         if (Array.isArray(data.models) && data.models.length > 0) {
           setAvailableModels(data.models);
 
-          // Update active models if current IDs match loaded models
+          // Update active models to ensure valid live endpoints
           setActiveModels((prev) => {
             return prev.map((curr) => {
-              const matched = data.models.find((m: LLMConfig) => m.id === curr.id);
-              return matched || curr;
+              const exact = data.models.find((m: LLMConfig) => m.id === curr.id);
+              if (exact) return exact;
+
+              // Fallback to closest provider match from live catalog if previous ID was decommissioned
+              const providerMatch = data.models.find((m: LLMConfig) => m.provider === curr.provider);
+              return providerMatch || curr;
             }) as [LLMConfig, LLMConfig, LLMConfig];
           });
         }
@@ -76,7 +80,7 @@ export default function ConsensusArenaPage() {
     if (storedKey) setUserApiKey(storedKey);
     if (storedJudge) setJudgeModelId(storedJudge);
 
-    // Initial fetch of fresh OpenRouter models catalog
+    // Clean any obsolete cached local model selections
     fetchCatalog(storedKey);
   }, []);
 
@@ -163,7 +167,7 @@ export default function ConsensusArenaPage() {
                 }));
               }
             } catch {
-              // Pass on single malformed chunk
+              // Pass
             }
           }
         }
