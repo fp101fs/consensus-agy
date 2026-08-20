@@ -1,43 +1,54 @@
-# Consensus Arena (Next.js & OpenRouter MVP)
+# Consensus Arena
 
-A multi-model LLM consensus, benchmarking, and arbitration platform built with Next.js App Router, Tailwind CSS, Neon PostgreSQL, and OpenRouter.
+An advanced multi-model LLM benchmarking, arbitration, and consensus platform built with **Next.js 16 (App Router)**, **Tailwind CSS**, **Neon PostgreSQL**, and **OpenRouter**.
 
-## Key Capabilities
-
-1. **Parallel 3-Column LLM Execution**:
-   - Dispatches a single prompt simultaneously to 3 independent models.
-   - Dynamic searchable model picker supporting hundreds of live OpenRouter endpoints.
-
-2. **Metacognitive 4-Part Benchmark Protocol**:
-   - Evaluates models on: (1) Answer, (2) Step-by-Step Proof, (3) Epistemic Confidence (0-100%), and (4) Solution Uniqueness Recognition (detecting underdetermined and false-premise impossible problems).
-
-3. **Supreme Judge AI Arbitrator**:
-   - Powered by Perplexity Sonar / GPT-4o to synthesize the unified ground-truth answer, verify factual claims with online citations, and grade model accuracy & calibration.
-
-4. **Leaderboard & Analytics Dashboard**:
-   - `/rankings`: Real-time Win % leaderboard tracking model win rates, average accuracy, generation speeds (tok/s), and overall scores.
-   - `/usage`: Token in/out and exact dollar spend per prompt with a circular gauge widget in the navbar.
-   - `/history`: Searchable chronological log of all past consensus runs.
-   - `/how`: Interactive methodology and architecture guide.
-
-5. **Programmatic REST API (`POST /api/consensus`)**:
-   - Trigger runs headlessly from scripts, CLI, or backend workflows.
+Pits multiple independent LLMs simultaneously against the same prompt, applies a rigorous 4-part metacognitive reasoning protocol, and uses a Supreme Judge AI with live web search grounding to synthesize the definitive truth, score model accuracy, and flag hallucinations or unjustified certainty.
 
 ---
 
-## Programmatic API Usage
+## Key Features
 
-### Endpoint: `POST /api/consensus`
+1. **Simultaneous Multi-Model Comparison (3 Columns)**:
+   - Dispatches a single prompt in parallel via Server-Sent Events (SSE) streaming.
+   - Interactive searchable model picker querying hundreds of live OpenRouter endpoints.
 
-Trigger a full multi-model consensus debate and judge evaluation via a single HTTP request.
+2. **4-Part Metacognitive Benchmark Protocol**:
+   - Enforces structured 4-dimensional answers across all models:
+     1. **Answer**: Precise solution.
+     2. **Reasoning**: Step-by-step logical proof.
+     3. **Confidence Rating (0–100%)**: Epistemic certainty.
+     4. **Uniqueness / Solvability**: Detects whether the problem has a *Guaranteed Unique Solution*, is *Underdetermined (Multiple Solutions)*, or is *Impossible (False Premise / Contradiction)*.
+
+3. **Supreme Judge AI Arbitrator**:
+   - Analyzes where models agree, catches deductive leaps, fact-checks claims using online search grounding (Perplexity Sonar / GPT-4o), and generates a unified consensus verdict.
+
+4. **Curated Logic Benchmark Presets Library & Modal**:
+   - Built-in benchmarks for Einstein's Riddle, Scheduling Constraints, Knights & Knaves, Boolos Hardest Logic Puzzle, Murder Mystery Alibis, False Premise Detection, Counterfactuals, and Multiple-Solution Ambiguity.
+
+5. **Analytics & Performance Tracking (Neon PostgreSQL)**:
+   - **`/rankings`**: Global Win % leaderboard + **"By Puzzle Benchmark"** head-to-head comparison breakdown.
+   - **`/usage`**: Prompt-by-prompt token in/out breakdown and dollar costs with circular gauge widget in navbar.
+   - **`/history`**: Searchable chronological logs of all past consensus runs.
+   - **`/how`**: Methodology and architectural breakdown.
+
+6. **Programmatic REST API (`POST /api/consensus`)**:
+   - Run batch evaluations and benchmark experiments headlessly from scripts, CLI, or backend workflows.
+
+---
+
+## Programmatic API Reference
+
+### `POST /api/consensus`
+
+Run any custom prompt against any list of OpenRouter models with automated arbitration and database logging.
 
 #### Request Headers:
 ```http
 Content-Type: application/json
-Authorization: Bearer <OPENROUTER_API_KEY>  (optional if set in env)
+Authorization: Bearer <OPENROUTER_API_KEY>  (optional if set in environment)
 ```
 
-#### Request Body:
+#### Request Payload:
 ```json
 {
   "prompt": "Solve this logic puzzle: Alice cannot work Monday, Bob must work after Carol...",
@@ -51,78 +62,43 @@ Authorization: Bearer <OPENROUTER_API_KEY>  (optional if set in env)
 }
 ```
 
-#### Example cURL:
+#### cURL Example:
 ```bash
-curl -X POST http://localhost:3000/api/consensus \
+curl -X POST https://your-domain.vercel.app/api/consensus \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $OPENROUTER_API_KEY" \
   -d '{
-    "prompt": "Determine if there is a unique integer solution for x+y+z=15 and x*y*z=120.",
-    "models": ["openai/gpt-4o", "anthropic/claude-sonnet-4.5", "google/gemini-2.5-flash"],
-    "judgeModel": "perplexity/sonar-reasoning-pro"
+    "prompt": "A farmer needs to cross a river with a wolf, a goat, and a cabbage...",
+    "models": ["google/gemini-2.5-flash", "openai/gpt-4o-mini", "meta-llama/llama-3.3-70b-instruct"],
+    "judgeModel": "google/gemini-2.5-flash",
+    "saveToDb": true
   }'
-```
-
-#### Response Structure:
-```json
-{
-  "success": true,
-  "queryId": "6f42621c-a17e-4625-bd45-b3ff9f5f24af",
-  "prompt": "...",
-  "totalLatencyMs": 4200,
-  "models": [
-    {
-      "modelId": "openai/gpt-4o",
-      "modelName": "openai/gpt-4o",
-      "response": "1. Answer: ...\n2. Reasoning: ...\n3. Confidence: 95%\n4. Uniqueness: ...",
-      "status": "completed",
-      "latencyMs": 1820,
-      "promptTokens": 120,
-      "completionTokens": 310,
-      "totalTokens": 430,
-      "costUsd": 0.0034,
-      "tokensPerSec": 170.3
-    }
-  ],
-  "judgeReport": {
-    "synthesis": "Unified ground truth...",
-    "verdictSummary": "Executive verdict...",
-    "agreementLevel": "High Consensus",
-    "agreementScore": 95,
-    "problemSolvability": "Underdetermined (Multiple Solutions)",
-    "winnerModelId": "anthropic/claude-sonnet-4.5",
-    "winnerReason": "Correctly identified multiple valid integer triples rather than asserting a false unique answer.",
-    "evaluations": [
-      {
-        "modelId": "anthropic/claude-sonnet-4.5",
-        "accuracyScore": 98,
-        "completenessScore": 95,
-        "reasoningScore": 96,
-        "overallScore": 96,
-        "metaCognition": {
-          "claimedConfidence": 95,
-          "confidenceAppropriateness": "Well-Calibrated",
-          "uniquenessRecognition": "Correctly Identified Non-Unique",
-          "epistemicVerdict": "Recognized underdetermined degrees of freedom."
-        }
-      }
-    ]
-  }
-}
 ```
 
 ---
 
-## Local Development
+## Getting Started
 
-1. Set up `.env.local`:
+### 1. Prerequisites & Environment Setup
+
+Create `.env.local` with your credentials:
+
 ```bash
-OPENROUTER_API_KEY=your_key_here
-DATABASE_URL=postgresql://...
+# OpenRouter API Key
+OPENROUTER_API_KEY=sk-or-v1-...
+
+# Neon PostgreSQL Connection
+DATABASE_URL=postgresql://user:password@ep-xyz.aws.neon.tech/neondb?sslmode=require
 ```
 
-2. Run development server:
+### 2. Install & Run
+
 ```bash
+# Install dependencies
+npm install
+
+# Run local development server
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000).
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
