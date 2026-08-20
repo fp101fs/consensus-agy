@@ -23,6 +23,7 @@ import {
   History,
   StopCircle,
   Brain,
+  BookOpen,
 } from 'lucide-react';
 
 export default function ConsensusArenaPage() {
@@ -231,7 +232,6 @@ export default function ConsensusArenaPage() {
       const completionTokens = explicitCompletionTokens ?? estimateTokens(accumulatedText);
       const totalTokens = promptTokens + completionTokens;
       
-      // Calculate realistic tokens per second over actual duration
       const durationSec = Math.max(0.1, totalLatency / 1000);
       const tokensPerSec = completionTokens / durationSec;
 
@@ -419,13 +419,22 @@ export default function ConsensusArenaPage() {
             {/* Circular Usage Widget */}
             <UsageWidget />
 
+            {/* How It Works Link */}
+            <Link
+              href="/how"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-800 bg-neutral-900/80 hover:bg-neutral-800 hover:border-indigo-500/40 text-xs text-neutral-300 hover:text-white transition shadow-sm"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+              <span>How It Works</span>
+            </Link>
+
             {/* Rankings Link */}
             <Link
               href="/rankings"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-800 bg-neutral-900/80 hover:bg-neutral-800 hover:border-amber-500/40 text-xs text-neutral-300 hover:text-white transition shadow-sm"
             >
               <Trophy className="w-3.5 h-3.5 text-amber-400" />
-              <span>Rankings (Win %)</span>
+              <span>Rankings</span>
             </Link>
 
             {/* History Link */}
@@ -599,6 +608,7 @@ export default function ConsensusArenaPage() {
             <span>Consensus AI • Powered by OpenRouter, Neon PostgreSQL & Perplexity Sonar Judge</span>
           </div>
           <div className="flex items-center gap-4 text-[11px] text-neutral-400">
+            <Link href="/how" className="hover:text-white transition">How It Works</Link>
             <Link href="/rankings" className="hover:text-white transition">Model Rankings</Link>
             <Link href="/usage" className="hover:text-white transition">Usage & Tokens</Link>
             <Link href="/history" className="hover:text-white transition">Query History</Link>
