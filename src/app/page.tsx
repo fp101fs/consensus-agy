@@ -54,13 +54,11 @@ export default function ConsensusArenaPage() {
         if (Array.isArray(data.models) && data.models.length > 0) {
           setAvailableModels(data.models);
 
-          // Update active models to ensure valid live endpoints
           setActiveModels((prev) => {
             return prev.map((curr) => {
               const exact = data.models.find((m: LLMConfig) => m.id === curr.id);
               if (exact) return exact;
 
-              // Fallback to closest provider match from live catalog if previous ID was decommissioned
               const providerMatch = data.models.find((m: LLMConfig) => m.provider === curr.provider);
               return providerMatch || curr;
             }) as [LLMConfig, LLMConfig, LLMConfig];
@@ -80,7 +78,6 @@ export default function ConsensusArenaPage() {
     if (storedKey) setUserApiKey(storedKey);
     if (storedJudge) setJudgeModelId(storedJudge);
 
-    // Clean any obsolete cached local model selections
     fetchCatalog(storedKey);
   }, []);
 
@@ -410,6 +407,7 @@ export default function ConsensusArenaPage() {
                   evaluation={evaluation}
                   isWinner={isWinner}
                   onModelSelect={(newId) => handleModelChange(index, newId)}
+                  onRetry={() => prompt && streamSingleModel(config, prompt)}
                   availableModels={availableModels}
                   disabled={isModelsStreaming || isJudging}
                 />

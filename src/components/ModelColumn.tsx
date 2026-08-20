@@ -4,7 +4,17 @@ import React, { useState } from 'react';
 import { LLMConfig, ModelOutput, ModelEvaluation } from '@/types/consensus';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Bot, CheckCircle2, AlertTriangle, Trophy, Zap, Clock, ShieldAlert, Search } from 'lucide-react';
+import {
+  Bot,
+  CheckCircle2,
+  AlertTriangle,
+  Trophy,
+  Zap,
+  Clock,
+  ShieldAlert,
+  Search,
+  RotateCcw,
+} from 'lucide-react';
 
 interface ModelColumnProps {
   config: LLMConfig;
@@ -12,6 +22,7 @@ interface ModelColumnProps {
   evaluation?: ModelEvaluation;
   isWinner?: boolean;
   onModelSelect?: (newId: string) => void;
+  onRetry?: () => void;
   availableModels: LLMConfig[];
   disabled?: boolean;
 }
@@ -22,6 +33,7 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
   evaluation,
   isWinner = false,
   onModelSelect,
+  onRetry,
   availableModels,
   disabled = false,
 }) => {
@@ -31,6 +43,7 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
   const isLoading = output?.status === 'loading';
   const isCompleted = output?.status === 'completed';
   const hasError = output?.status === 'error';
+  const isRateLimit = output?.error?.toLowerCase().includes('rate limited') || output?.error?.includes('429');
 
   const filteredModels = availableModels.filter(
     (m) =>
@@ -182,11 +195,33 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
         )}
 
         {hasError && (
-          <div className="p-3.5 bg-red-950/30 border border-red-800/50 rounded-xl text-red-300 text-xs flex items-start gap-2">
-            <ShieldAlert className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-red-200">Execution Error</p>
-              <p className="text-red-400/90 mt-0.5">{output?.error || 'Failed to stream response'}</p>
+          <div className={`p-4 rounded-xl border text-xs space-y-2.5 ${
+            isRateLimit
+              ? 'bg-amber-950/20 border-amber-800/40 text-amber-200'
+              : 'bg-red-950/30 border-red-800/50 text-red-300'
+          }`}>
+            <div className="flex items-start gap-2">
+              <ShieldAlert className={`w-4 h-4 shrink-0 mt-0.5 ${isRateLimit ? 'text-amber-400' : 'text-red-400'}`} />
+              <div className="flex-1">
+                <p className="font-semibold">{isRateLimit ? 'Upstream Rate Limit (429)' : 'Execution Error'}</p>
+                <p className="opacity-90 mt-1 leading-relaxed">{output?.error || 'Failed to stream response'}</p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
+              <span className="text-[11px] text-neutral-400">
+                {isRateLimit ? 'Switch to another model or retry' : 'Try selecting another model'}
+              </span>
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  disabled={disabled}
+                  className="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white font-medium text-[11px] flex items-center gap-1 transition"
+                >
+                  <RotateCcw className="w-3 h-3" /> Retry
+                </button>
+              )}
             </div>
           </div>
         )}

@@ -2,6 +2,17 @@ import { NextRequest } from 'next/server';
 
 export const runtime = 'nodejs';
 
+function formatRateLimitError(errJson: any, defaultMsg: string): string {
+  if (errJson?.error?.code === 429 || errJson?.error?.message?.toLowerCase().includes('rate')) {
+    const raw = errJson?.error?.metadata?.raw;
+    const hint = errJson?.error?.metadata?.remedy_hint;
+    if (raw) return `Rate Limited (429): ${raw}`;
+    if (hint) return `Rate Limited (429): ${hint}`;
+    return `Rate Limited (429): The upstream provider for this model is temporarily busy. Please retry shortly or pick an alternative model.`;
+  }
+  return errJson?.error?.message || defaultMsg;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { modelId, prompt, userApiKey } = await req.json();
@@ -24,34 +35,69 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-        'X-Title': process.env.NEXT_PUBLIC_SITE_NAME || 'Consensus Arena',
-        'Content-Type': 'application/json',
+    // Configure request with OpenRouter provider fallbacks & routing
+    const requestPayload = {
+      model: modelId,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an intelligent, precise AI responding to the user. Give a comprehensive, factual, and well-structured answer.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      stream: true,
+      provider: {
+        allow_fallbacks: true, // Automatically route to another provider if primary is 429 rate-limited
       },
-      body: JSON.stringify({
-        model: modelId,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an intelligent, precise AI responding to the user. Give a comprehensive, factual, and well-structured answer.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        stream: true,
-      }),
-    });
+    };
+
+    const executeStream = async (targetModel: string) => {
+      return await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+          'X-Title': process.env.NEXT_PUBLIC_SITE_NAME || 'Consensus Arena',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...requestPayload,
+          model: targetModel,
+        }),
+      });
+    };
+
+    let response = await executeStream(modelId);
+
+    // If 429 rate limit hit on free endpoint, try fallback to base non-free or standard model if applicable
+    if (response.status === 429 && modelId.endsWith(':free')) {
+      const baseModel = modelId.replace(/:free$/, '');
+      console.warn(`429 on free tier ${modelId}, attempting fallback to ${baseModel}`);
+      const retryRes = await executeStream(baseModel);
+      if (retryRes.ok) {
+        response = retryRes;
+      }
+    }
 
     if (!response.ok) {
       const errText = await response.text();
+      let parsedErr: any = {};
+      try {
+        parsedErr = JSON.parse(errText);
+      } catch {
+        parsedErr = { error: { message: errText } };
+      }
+
+      const formatted = formatRateLimitError(parsedErr, `OpenRouter error (${response.status}): ${errText}`);
+
       return new Response(
-        JSON.stringify({ error: `OpenRouter error (${response.status}): ${errText}` }),
+        JSON.stringify({
+          error: formatted,
+          isRateLimit: response.status === 429,
+        }),
         { status: response.status, headers: { 'Content-Type': 'application/json' } }
       );
     }
