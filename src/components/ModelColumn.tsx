@@ -14,6 +14,10 @@ import {
   ShieldAlert,
   Search,
   RotateCcw,
+  StopCircle,
+  Coins,
+  Gauge,
+  Check,
 } from 'lucide-react';
 
 interface ModelColumnProps {
@@ -23,6 +27,7 @@ interface ModelColumnProps {
   isWinner?: boolean;
   onModelSelect?: (newId: string) => void;
   onRetry?: () => void;
+  onCancel?: () => void;
   availableModels: LLMConfig[];
   disabled?: boolean;
 }
@@ -34,6 +39,7 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
   isWinner = false,
   onModelSelect,
   onRetry,
+  onCancel,
   availableModels,
   disabled = false,
 }) => {
@@ -43,7 +49,10 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
   const isLoading = output?.status === 'loading';
   const isCompleted = output?.status === 'completed';
   const hasError = output?.status === 'error';
-  const isRateLimit = output?.error?.toLowerCase().includes('rate limited') || output?.error?.includes('429');
+  const isCancelled = output?.status === 'cancelled';
+  const isRateLimit =
+    output?.error?.toLowerCase().includes('rate limited') ||
+    output?.error?.includes('429');
 
   const filteredModels = availableModels.filter(
     (m) =>
@@ -92,7 +101,9 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
                 className="text-left w-full truncate text-sm font-semibold text-neutral-100 hover:text-white flex items-center justify-between gap-1 group py-0.5 px-1 rounded hover:bg-neutral-800/60 transition"
               >
                 <span className="truncate">{config.name}</span>
-                <span className="text-[10px] text-neutral-500 font-mono group-hover:text-neutral-300">▼</span>
+                <span className="text-[10px] text-neutral-500 font-mono group-hover:text-neutral-300">
+                  ▼
+                </span>
               </button>
 
               <div className="text-[11px] text-neutral-400 font-mono truncate px-1">
@@ -133,7 +144,9 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
                               setFilterText('');
                             }}
                             className={`w-full text-left p-2 rounded-lg text-xs hover:bg-neutral-800 transition flex flex-col ${
-                              m.id === config.id ? 'bg-indigo-600/20 text-indigo-300 font-bold' : 'text-neutral-200'
+                              m.id === config.id
+                                ? 'bg-indigo-600/20 text-indigo-300 font-bold'
+                                : 'text-neutral-200'
                             }`}
                           >
                             <span className="font-medium">{m.name}</span>
@@ -150,15 +163,35 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
             </div>
           </div>
 
+          {/* Column Action / Status indicators */}
           <div className="flex items-center gap-1.5 shrink-0 ml-2">
             {isLoading && (
-              <span className="flex items-center gap-1 text-[11px] text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 animate-pulse">
-                <Zap className="w-3 h-3 animate-spin" /> Generating...
+              <div className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1 text-[11px] text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 animate-pulse font-medium">
+                  <div className="w-2 h-2 rounded-full bg-sky-400 animate-ping mr-0.5" />
+                  Running...
+                </span>
+                {onCancel && (
+                  <button
+                    onClick={onCancel}
+                    title="Cancel this LLM"
+                    className="p-1 rounded-md bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 transition"
+                  >
+                    <StopCircle className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {isCompleted && (
+              <span className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md font-medium">
+                <Check className="w-3 h-3 text-emerald-400" /> Done
               </span>
             )}
-            {isCompleted && output?.latencyMs && (
-              <span className="flex items-center gap-1 text-[10px] text-neutral-400 bg-neutral-800/80 px-2 py-0.5 rounded-md font-mono">
-                <Clock className="w-3 h-3" /> {(output.latencyMs / 1000).toFixed(1)}s
+
+            {isCancelled && (
+              <span className="flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                Stopped
               </span>
             )}
           </div>
@@ -169,48 +202,78 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
           <div className="mt-2.5 pt-2.5 border-t border-neutral-800/60 grid grid-cols-3 gap-1 text-center">
             <div className="bg-neutral-950/60 p-1 rounded border border-neutral-800">
               <div className="text-[10px] text-neutral-400">Accuracy</div>
-              <div className={`text-xs font-bold ${evaluation.accuracyScore >= 85 ? 'text-emerald-400' : evaluation.accuracyScore >= 70 ? 'text-yellow-400' : 'text-red-400'}`}>
+              <div
+                className={`text-xs font-bold ${
+                  evaluation.accuracyScore >= 85
+                    ? 'text-emerald-400'
+                    : evaluation.accuracyScore >= 70
+                    ? 'text-yellow-400'
+                    : 'text-red-400'
+                }`}
+              >
                 {evaluation.accuracyScore}%
               </div>
             </div>
             <div className="bg-neutral-950/60 p-1 rounded border border-neutral-800">
               <div className="text-[10px] text-neutral-400">Complete</div>
-              <div className="text-xs font-bold text-sky-400">{evaluation.completenessScore}%</div>
+              <div className="text-xs font-bold text-sky-400">
+                {evaluation.completenessScore}%
+              </div>
             </div>
             <div className="bg-neutral-950/60 p-1 rounded border border-neutral-800">
               <div className="text-[10px] text-neutral-400">Reasoning</div>
-              <div className="text-xs font-bold text-purple-400">{evaluation.reasoningScore}%</div>
+              <div className="text-xs font-bold text-purple-400">
+                {evaluation.reasoningScore}%
+              </div>
             </div>
           </div>
         )}
       </div>
 
       {/* Model Response Body */}
-      <div className="flex-1 p-4 overflow-y-auto max-h-[460px] min-h-[220px] text-sm text-neutral-200 leading-relaxed font-sans space-y-3">
+      <div className="flex-1 p-4 overflow-y-auto max-h-[460px] min-h-[220px] text-sm text-neutral-200 leading-relaxed font-sans space-y-3 relative">
+        {/* Simple animated spinner centered while response is generating */}
         {isLoading && !output?.response && (
-          <div className="h-full flex flex-col items-center justify-center py-12 text-neutral-500 space-y-3">
-            <div className="w-6 h-6 border-2 border-neutral-600 border-t-sky-400 rounded-full animate-spin" />
-            <p className="text-xs text-neutral-400 animate-pulse">Streaming response from {config.name}...</p>
+          <div className="h-full flex flex-col items-center justify-center py-16 text-neutral-400 space-y-3">
+            <div className="relative flex items-center justify-center">
+              <div className="w-10 h-10 border-2 border-neutral-700 border-t-indigo-400 rounded-full animate-spin" />
+              <Bot className="w-4 h-4 text-indigo-400 absolute" />
+            </div>
+            <p className="text-xs text-neutral-300 font-medium animate-pulse">
+              Running {config.name}...
+            </p>
           </div>
         )}
 
         {hasError && (
-          <div className={`p-4 rounded-xl border text-xs space-y-2.5 ${
-            isRateLimit
-              ? 'bg-amber-950/20 border-amber-800/40 text-amber-200'
-              : 'bg-red-950/30 border-red-800/50 text-red-300'
-          }`}>
+          <div
+            className={`p-4 rounded-xl border text-xs space-y-2.5 ${
+              isRateLimit
+                ? 'bg-amber-950/20 border-amber-800/40 text-amber-200'
+                : 'bg-red-950/30 border-red-800/50 text-red-300'
+            }`}
+          >
             <div className="flex items-start gap-2">
-              <ShieldAlert className={`w-4 h-4 shrink-0 mt-0.5 ${isRateLimit ? 'text-amber-400' : 'text-red-400'}`} />
+              <ShieldAlert
+                className={`w-4 h-4 shrink-0 mt-0.5 ${
+                  isRateLimit ? 'text-amber-400' : 'text-red-400'
+                }`}
+              />
               <div className="flex-1">
-                <p className="font-semibold">{isRateLimit ? 'Upstream Rate Limit (429)' : 'Execution Error'}</p>
-                <p className="opacity-90 mt-1 leading-relaxed">{output?.error || 'Failed to stream response'}</p>
+                <p className="font-semibold">
+                  {isRateLimit ? 'Upstream Rate Limit (429)' : 'Execution Error'}
+                </p>
+                <p className="opacity-90 mt-1 leading-relaxed">
+                  {output?.error || 'Failed to stream response'}
+                </p>
               </div>
             </div>
 
             <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
               <span className="text-[11px] text-neutral-400">
-                {isRateLimit ? 'Switch to another model or retry' : 'Try selecting another model'}
+                {isRateLimit
+                  ? 'Switch to another model or retry'
+                  : 'Try selecting another model'}
               </span>
               {onRetry && (
                 <button
@@ -241,6 +304,45 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
         )}
       </div>
 
+      {/* Live Metrics Footer (Cost, Tokens In/Out, Latency, Tokens/Sec) */}
+      {(output?.status === 'completed' || (output?.response && !isLoading)) && (
+        <div className="px-3 py-2 border-t border-neutral-800/80 bg-neutral-950/70 grid grid-cols-4 gap-1 text-[10px] font-mono text-neutral-300">
+          <div className="bg-neutral-900/60 p-1.5 rounded border border-neutral-800/70 flex flex-col items-center">
+            <span className="text-neutral-500 text-[9px] flex items-center gap-0.5">
+              <Coins className="w-2.5 h-2.5 text-amber-400" /> Cost
+            </span>
+            <span className="font-bold text-amber-300">
+              ${(output.costUsd || 0).toFixed(5)}
+            </span>
+          </div>
+
+          <div className="bg-neutral-900/60 p-1.5 rounded border border-neutral-800/70 flex flex-col items-center">
+            <span className="text-neutral-500 text-[9px]">In / Out</span>
+            <span className="font-semibold text-neutral-200">
+              {output.promptTokens || 0} / {output.completionTokens || 0}
+            </span>
+          </div>
+
+          <div className="bg-neutral-900/60 p-1.5 rounded border border-neutral-800/70 flex flex-col items-center">
+            <span className="text-neutral-500 text-[9px] flex items-center gap-0.5">
+              <Clock className="w-2.5 h-2.5 text-sky-400" /> Time
+            </span>
+            <span className="font-semibold text-sky-300">
+              {((output.latencyMs || 0) / 1000).toFixed(1)}s
+            </span>
+          </div>
+
+          <div className="bg-neutral-900/60 p-1.5 rounded border border-neutral-800/70 flex flex-col items-center">
+            <span className="text-neutral-500 text-[9px] flex items-center gap-0.5">
+              <Gauge className="w-2.5 h-2.5 text-emerald-400" /> Speed
+            </span>
+            <span className="font-bold text-emerald-300">
+              {(output.tokensPerSec || 0).toFixed(0)} tok/s
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Evaluation Highlights Footer */}
       {evaluation && (
         <div className="p-3 border-t border-neutral-800/80 bg-neutral-950/60 text-xs space-y-2 rounded-b-2xl">
@@ -248,7 +350,8 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
             <div className="text-[11px] text-emerald-400 flex items-start gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-400" />
               <span>
-                <strong className="text-emerald-300">Strength:</strong> {evaluation.strengths[0]}
+                <strong className="text-emerald-300">Strength:</strong>{' '}
+                {evaluation.strengths[0]}
               </span>
             </div>
           )}
@@ -257,19 +360,22 @@ export const ModelColumn: React.FC<ModelColumnProps> = ({
             <div className="text-[11px] text-amber-400 flex items-start gap-1.5">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
               <span>
-                <strong className="text-amber-300">Gap/Critique:</strong> {evaluation.weaknesses[0]}
+                <strong className="text-amber-300">Gap/Critique:</strong>{' '}
+                {evaluation.weaknesses[0]}
               </span>
             </div>
           )}
 
-          {evaluation.hallucinationsOrErrors && evaluation.hallucinationsOrErrors.length > 0 && (
-            <div className="text-[11px] text-red-400 bg-red-950/30 p-1.5 rounded border border-red-900/40 flex items-start gap-1.5">
-              <ShieldAlert className="w-3.5 h-3.5 shrink-0 mt-0.5 text-red-400" />
-              <span>
-                <strong className="text-red-300">Flagged Flaw:</strong> {evaluation.hallucinationsOrErrors[0]}
-              </span>
-            </div>
-          )}
+          {evaluation.hallucinationsOrErrors &&
+            evaluation.hallucinationsOrErrors.length > 0 && (
+              <div className="text-[11px] text-red-400 bg-red-950/30 p-1.5 rounded border border-red-900/40 flex items-start gap-1.5">
+                <ShieldAlert className="w-3.5 h-3.5 shrink-0 mt-0.5 text-red-400" />
+                <span>
+                  <strong className="text-red-300">Flagged Flaw:</strong>{' '}
+                  {evaluation.hallucinationsOrErrors[0]}
+                </span>
+              </div>
+            )}
         </div>
       )}
     </div>

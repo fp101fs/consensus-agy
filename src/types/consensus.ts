@@ -6,6 +6,8 @@ export interface LLMConfig {
   color: string;
   badgeBg: string;
   borderColor: string;
+  promptPrice?: number;
+  completionPrice?: number;
 }
 
 export interface ModelOutput {
@@ -13,8 +15,13 @@ export interface ModelOutput {
   modelName: string;
   provider: string;
   response: string;
-  status: 'idle' | 'loading' | 'completed' | 'error';
+  status: 'idle' | 'loading' | 'completed' | 'error' | 'cancelled';
   latencyMs?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  costUsd?: number;
+  tokensPerSec?: number;
   error?: string;
 }
 
@@ -50,4 +57,78 @@ export interface ConsensusJudgeReport {
   winnerReason: string;
   citedReferences?: CitedReference[];
   confidenceRating: number; // 0 - 100
+}
+
+export interface ModelRanking {
+  modelId: string;
+  modelName: string;
+  provider: string;
+  totalRuns: number;
+  totalWins: number;
+  winRate: number; // percentage 0-100
+  avgAccuracy: number;
+  avgCompleteness: number;
+  avgReasoning: number;
+  avgOverallScore: number;
+  avgLatencyMs: number;
+  avgTokensPerSec: number;
+  totalCostUsd: number;
+}
+
+export interface UsageSummary {
+  totalTokensIn: number;
+  totalTokensOut: number;
+  totalTokens: number;
+  totalCostUsd: number;
+  totalQueries: number;
+  avgCostPerQuery: number;
+  recentQueries: {
+    id: string;
+    prompt: string;
+    createdAt: string;
+    totalCostUsd: number;
+    totalTokens: number;
+    tokensIn: number;
+    tokensOut: number;
+    winnerModelId?: string;
+    models: {
+      modelId: string;
+      modelName: string;
+      tokens: number;
+      costUsd: number;
+      latencyMs: number;
+      tokensPerSec: number;
+    }[];
+  }[];
+}
+
+export interface HistoryQueryItem {
+  id: string;
+  prompt: string;
+  winnerModelId: string | null;
+  winnerReason: string | null;
+  agreementLevel: string | null;
+  agreementScore: number | null;
+  confidenceRating: number | null;
+  totalCostUsd: number;
+  totalTokensIn: number;
+  totalTokensOut: number;
+  totalLatencyMs: number;
+  createdAt: string;
+  judgeReport: ConsensusJudgeReport | null;
+  models: {
+    modelId: string;
+    modelName: string;
+    provider: string;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    costUsd: number;
+    latencyMs: number;
+    tokensPerSec: number;
+    responseText: string;
+    isWinner: boolean;
+    accuracyScore: number;
+    overallScore: number;
+  }[];
 }

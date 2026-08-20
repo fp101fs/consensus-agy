@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { LLMConfig, ModelOutput, ConsensusJudgeReport } from '@/types/consensus';
 import { DEFAULT_MODELS, AVAILABLE_MODELS_LIST, JUDGE_MODEL_CONFIG } from '@/lib/models';
 import { ModelColumn } from '@/components/ModelColumn';
 import { JudgeVerdict } from '@/components/JudgeVerdict';
 import { SettingsModal } from '@/components/SettingsModal';
+import { UsageWidget } from '@/components/UsageWidget';
+import { estimateTokens, calculateCost } from '@/lib/pricing';
 import {
   Sparkles,
   Send,
@@ -14,6 +17,9 @@ import {
   Zap,
   ShieldCheck,
   RefreshCw,
+  Trophy,
+  History,
+  StopCircle,
 } from 'lucide-react';
 
 const PRESET_PROMPTS = [
@@ -37,6 +43,8 @@ export default function ConsensusArenaPage() {
   const [judgeModelId, setJudgeModelId] = useState(JUDGE_MODEL_CONFIG.id);
   const [isFetchingCatalog, setIsFetchingCatalog] = useState(false);
 
+  // Abort controllers for canceling LLM queries
+  const abortControllersRef = useRef<Record<string, AbortController>>({});
   const verdictRef = useRef<HTMLDivElement>(null);
 
   const fetchCatalog = async (apiKeyOverride?: string) => {
@@ -100,8 +108,37 @@ export default function ConsensusArenaPage() {
     setActiveModels(newModels);
   };
 
+  const cancelSingleModel = (modelId: string) => {
+    if (abortControllersRef.current[modelId]) {
+      abortControllersRef.current[modelId].abort();
+      delete abortControllersRef.current[modelId];
+    }
+    setModelOutputs((prev) => ({
+      ...prev,
+      [modelId]: {
+        ...(prev[modelId] || { modelId, modelName: modelId, provider: 'AI', response: '' }),
+        status: 'cancelled',
+        error: 'Execution cancelled by user',
+      },
+    }));
+  };
+
+  const cancelAllRuns = () => {
+    Object.keys(abortControllersRef.current).forEach((id) => {
+      abortControllersRef.current[id].abort();
+    });
+    abortControllersRef.current = {};
+    setIsModelsStreaming(false);
+    setIsJudging(false);
+  };
+
   const streamSingleModel = async (model: LLMConfig, promptText: string) => {
     const startTime = Date.now();
+    const promptTokens = estimateTokens(promptText);
+
+    const controller = new AbortController();
+    abortControllersRef.current[model.id] = controller;
+
     setModelOutputs((prev) => ({
       ...prev,
       [model.id]: {
@@ -110,6 +147,7 @@ export default function ConsensusArenaPage() {
         provider: model.provider,
         response: '',
         status: 'loading',
+        promptTokens,
       },
     }));
 
@@ -117,6 +155,7 @@ export default function ConsensusArenaPage() {
       const response = await fetch('/api/stream-model', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           modelId: model.id,
           prompt: promptText,
@@ -152,6 +191,10 @@ export default function ConsensusArenaPage() {
               if (data.error) throw new Error(data.error);
               if (data.content) {
                 accumulatedText += data.content;
+                const elapsedSec = Math.max(0.1, (Date.now() - startTime) / 1000);
+                const currCompletionTokens = estimateTokens(accumulatedText);
+                const currentTokensPerSec = currCompletionTokens / elapsedSec;
+
                 setModelOutputs((prev) => ({
                   ...prev,
                   [model.id]: {
@@ -160,6 +203,10 @@ export default function ConsensusArenaPage() {
                     provider: model.provider,
                     response: accumulatedText,
                     status: 'loading',
+                    promptTokens,
+                    completionTokens: currCompletionTokens,
+                    totalTokens: promptTokens + currCompletionTokens,
+                    tokensPerSec: currentTokensPerSec,
                   },
                 }));
               }
@@ -171,24 +218,55 @@ export default function ConsensusArenaPage() {
       }
 
       const totalLatency = Date.now() - startTime;
+      const completionTokens = estimateTokens(accumulatedText);
+      const totalTokens = promptTokens + completionTokens;
+      const elapsedSec = Math.max(0.1, totalLatency / 1000);
+      const tokensPerSec = completionTokens / elapsedSec;
+      const costUsd = calculateCost(
+        model.id,
+        promptTokens,
+        completionTokens,
+        model.promptPrice,
+        model.completionPrice
+      );
+
+      const finalOutput: ModelOutput = {
+        modelId: model.id,
+        modelName: model.name,
+        provider: model.provider,
+        response: accumulatedText,
+        status: 'completed',
+        latencyMs: totalLatency,
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        costUsd,
+        tokensPerSec,
+      };
+
       setModelOutputs((prev) => ({
         ...prev,
-        [model.id]: {
-          modelId: model.id,
-          modelName: model.name,
-          provider: model.provider,
-          response: accumulatedText,
-          status: 'completed',
-          latencyMs: totalLatency,
-        },
+        [model.id]: finalOutput,
       }));
+
+      delete abortControllersRef.current[model.id];
 
       return {
         modelId: model.id,
         modelName: model.name,
         response: accumulatedText,
+        output: finalOutput,
       };
     } catch (err: unknown) {
+      delete abortControllersRef.current[model.id];
+      if (err instanceof Error && err.name === 'AbortError') {
+        return {
+          modelId: model.id,
+          modelName: model.name,
+          response: '[Cancelled by user]',
+        };
+      }
+
       const errorMsg = err instanceof Error ? err.message : 'Unknown execution error';
       setModelOutputs((prev) => ({
         ...prev,
@@ -213,6 +291,7 @@ export default function ConsensusArenaPage() {
     const promptToSubmit = customPrompt || prompt;
     if (!promptToSubmit.trim() || isModelsStreaming || isJudging) return;
 
+    const overallStartTime = Date.now();
     setIsModelsStreaming(true);
     setIsJudging(false);
     setJudgeReport(null);
@@ -223,7 +302,7 @@ export default function ConsensusArenaPage() {
       streamSingleModel(model, promptToSubmit)
     );
 
-    const completedResponses = await Promise.all(promises);
+    const completedResults = await Promise.all(promises);
     setIsModelsStreaming(false);
 
     // Now trigger the 4th Judge AI LLM with fact-checking & quantitative synthesis
@@ -235,7 +314,11 @@ export default function ConsensusArenaPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: promptToSubmit,
-          modelResponses: completedResponses,
+          modelResponses: completedResults.map((r) => ({
+            modelId: r.modelId,
+            modelName: r.modelName,
+            response: r.response,
+          })),
           judgeModelId: judgeModelId,
           userApiKey: userApiKey || undefined,
         }),
@@ -248,6 +331,19 @@ export default function ConsensusArenaPage() {
 
       const report: ConsensusJudgeReport = await judgeRes.json();
       setJudgeReport(report);
+
+      // Record full consensus query & metrics to PostgreSQL DB
+      const totalElapsedMs = Date.now() - overallStartTime;
+      fetch('/api/record-run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: promptToSubmit,
+          modelOutputs: modelOutputs,
+          judgeReport: report,
+          totalLatencyMs: totalElapsedMs,
+        }),
+      }).catch((e) => console.warn('Could not record run in DB:', e));
 
       setTimeout(() => {
         verdictRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -273,25 +369,50 @@ export default function ConsensusArenaPage() {
       <header className="border-b border-neutral-800/80 bg-neutral-950/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-md shadow-indigo-500/20 text-white font-black text-lg">
-              C
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-base tracking-tight text-white">
-                  Consensus Arena
-                </span>
-                <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  Live Catalog ({availableModels.length} models)
-                </span>
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-md shadow-indigo-500/20 text-white font-black text-lg group-hover:scale-105 transition">
+                C
               </div>
-              <p className="text-[11px] text-neutral-400">
-                Cross-reference 3 independent LLMs simultaneously to eliminate hallucinations
-              </p>
-            </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-base tracking-tight text-white group-hover:text-indigo-200 transition">
+                    Consensus Arena
+                  </span>
+                  <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    Live ({availableModels.length})
+                  </span>
+                </div>
+                <p className="text-[11px] text-neutral-400">
+                  Side-by-side arbitration & factual consensus
+                </p>
+              </div>
+            </Link>
           </div>
 
+          {/* Navigation Links & Widgets */}
           <div className="flex items-center gap-2.5">
+            {/* Circular Usage Widget */}
+            <UsageWidget />
+
+            {/* Rankings Link */}
+            <Link
+              href="/rankings"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-800 bg-neutral-900/80 hover:bg-neutral-800 hover:border-amber-500/40 text-xs text-neutral-300 hover:text-white transition shadow-sm"
+            >
+              <Trophy className="w-3.5 h-3.5 text-amber-400" />
+              <span>Rankings (Win %)</span>
+            </Link>
+
+            {/* History Link */}
+            <Link
+              href="/history"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-800 bg-neutral-900/80 hover:bg-neutral-800 hover:border-sky-500/40 text-xs text-neutral-300 hover:text-white transition shadow-sm"
+            >
+              <History className="w-3.5 h-3.5 text-sky-400" />
+              <span>History</span>
+            </Link>
+
+            {/* Refresh Catalog */}
             <button
               onClick={() => fetchCatalog()}
               disabled={isFetchingCatalog}
@@ -301,12 +422,13 @@ export default function ConsensusArenaPage() {
               <RefreshCw className={`w-3.5 h-3.5 ${isFetchingCatalog ? 'animate-spin' : ''}`} />
             </button>
 
+            {/* Settings Modal Toggle */}
             <button
               onClick={() => setSettingsOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-800 bg-neutral-900/80 hover:bg-neutral-800 text-xs text-neutral-300 hover:text-white transition"
             >
               <Sliders className="w-3.5 h-3.5" />
-              <span>Settings / API Key</span>
+              <span>Settings</span>
             </button>
           </div>
         </div>
@@ -330,6 +452,18 @@ export default function ConsensusArenaPage() {
                 <span className="text-[11px] text-neutral-500 hidden sm:inline-block">
                   Press <kbd className="bg-neutral-800 px-1.5 py-0.5 rounded text-neutral-400 font-mono text-[10px]">⌘ + Enter</kbd>
                 </span>
+
+                {/* Cancel All Button if running */}
+                {(isModelsStreaming || isJudging) && (
+                  <button
+                    onClick={cancelAllRuns}
+                    className="px-3.5 py-2.5 rounded-xl bg-red-950/60 hover:bg-red-900/80 border border-red-800/60 text-red-300 text-xs font-bold flex items-center gap-1.5 transition"
+                  >
+                    <StopCircle className="w-3.5 h-3.5 text-red-400" />
+                    <span>Cancel Run</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => handleRunConsensus()}
                   disabled={!prompt.trim() || isModelsStreaming || isJudging}
@@ -408,6 +542,7 @@ export default function ConsensusArenaPage() {
                   isWinner={isWinner}
                   onModelSelect={(newId) => handleModelChange(index, newId)}
                   onRetry={() => prompt && streamSingleModel(config, prompt)}
+                  onCancel={() => cancelSingleModel(config.id)}
                   availableModels={availableModels}
                   disabled={isModelsStreaming || isJudging}
                 />
@@ -432,10 +567,12 @@ export default function ConsensusArenaPage() {
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-indigo-400" />
-            <span>Consensus AI • Powered by OpenRouter & Perplexity Sonar Judge</span>
+            <span>Consensus AI • Powered by OpenRouter, Neon PostgreSQL & Perplexity Sonar Judge</span>
           </div>
-          <div className="text-[11px] text-neutral-600">
-            Side-by-side verification and truth synthesis
+          <div className="flex items-center gap-4 text-[11px] text-neutral-400">
+            <Link href="/rankings" className="hover:text-white transition">Model Rankings</Link>
+            <Link href="/usage" className="hover:text-white transition">Usage & Tokens</Link>
+            <Link href="/history" className="hover:text-white transition">Query History</Link>
           </div>
         </div>
       </footer>
