@@ -146,31 +146,10 @@ export const SvgRenderer: React.FC<SvgRendererProps> = ({ content, className = '
       <div className="p-4 flex-1 flex items-center justify-center min-h-[320px] max-h-[500px] overflow-auto bg-neutral-950/60 relative">
         {viewMode === 'preview' ? (
           <div
-            className="w-full h-full flex items-center justify-center transition-transform"
+            className="w-full h-full flex items-center justify-center transition-transform [&>svg]:max-h-[400px] [&>svg]:max-w-full [&>svg]:w-auto [&>svg]:h-auto [&>svg]:mx-auto"
             style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'center center' }}
-          >
-            {svgDataUrl ? (
-              <img
-                src={svgDataUrl}
-                alt={title}
-                className="max-h-[400px] max-w-full object-contain pointer-events-none select-none"
-                onError={(e) => {
-                  // Fallback to sandboxed iframe or visual error if image decoding fails on malformed LLM vectors
-                  const target = e.currentTarget;
-                  target.style.display = 'none';
-                  const parent = target.parentElement;
-                  if (parent && !parent.querySelector('.svg-error-fallback')) {
-                    const fallback = document.createElement('div');
-                    fallback.className = 'svg-error-fallback text-xs text-amber-400 flex items-center gap-1.5 p-3 rounded-xl bg-amber-950/20 border border-amber-500/30';
-                    fallback.innerHTML = '<span>⚠️ Malformed coordinate syntax in model output</span>';
-                    parent.appendChild(fallback);
-                  }
-                }}
-              />
-            ) : (
-              <div className="text-xs text-neutral-500">Unable to preview SVG</div>
-            )}
-          </div>
+            dangerouslySetInnerHTML={{ __html: svgCode }}
+          />
         ) : (
           <pre className="text-[11px] font-mono text-neutral-300 w-full h-full overflow-auto p-2 bg-neutral-950 rounded-xl border border-neutral-800/80 select-all leading-relaxed">
             <code>{svgCode}</code>
