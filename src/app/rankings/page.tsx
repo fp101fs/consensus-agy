@@ -7,16 +7,12 @@ import {
   ArrowLeft,
   Trophy,
   Medal,
-  TrendingUp,
   Coins,
-  Gauge,
-  Clock,
   RefreshCw,
-  Zap,
   Sparkles,
   BrainCircuit,
-  Filter,
-  CheckCircle2,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 export default function RankingsPage() {
@@ -24,6 +20,7 @@ export default function RankingsPage() {
   const [benchmarks, setBenchmarks] = useState<BenchmarkStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overall' | 'by-puzzle'>('overall');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchRankings = async () => {
     setLoading(true);
@@ -44,6 +41,14 @@ export default function RankingsPage() {
   useEffect(() => {
     fetchRankings();
   }, []);
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(text);
+    setTimeout(() => {
+      setCopiedId(null);
+    }, 1500);
+  };
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col selection:bg-indigo-500 selection:text-white">
@@ -152,7 +157,7 @@ export default function RankingsPage() {
                         <div className="bg-neutral-950/70 p-2 rounded-xl border border-white/5">
                           <div className="text-[10px] text-neutral-400">Win Rate</div>
                           <div className="text-base font-black font-mono text-amber-400">
-                            {r.winRate}%
+                            {Math.round(r.winRate)}%
                           </div>
                         </div>
                         <div className="bg-neutral-950/70 p-2 rounded-xl border border-white/5">
@@ -200,7 +205,7 @@ export default function RankingsPage() {
                         rankings.map((r, idx) => (
                           <tr
                             key={r.modelId}
-                            className={`hover:bg-neutral-800/30 transition ${
+                            className={`hover:bg-neutral-800/30 transition group ${
                               idx === 0 ? 'bg-amber-500/5 font-semibold' : ''
                             }`}
                           >
@@ -208,18 +213,37 @@ export default function RankingsPage() {
                               #{idx + 1}
                             </td>
                             <td className="p-4">
-                              <div className="font-bold text-white">{r.modelName}</div>
-                              <div className="text-[11px] text-neutral-500 font-mono">{r.provider}</div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-white">{r.modelName}</span>
+                                {/* Copy Model ID Button on Hover */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopy(r.modelId)}
+                                  title={`Copy ID: ${r.modelId}`}
+                                  className="opacity-0 group-hover:opacity-100 p-1 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white transition shrink-0"
+                                >
+                                  {copiedId === r.modelId ? (
+                                    <Check className="w-3 h-3 text-emerald-400" />
+                                  ) : (
+                                    <Copy className="w-3 h-3" />
+                                  )}
+                                </button>
+                              </div>
+                              <div className="text-[11px] text-neutral-500 font-mono flex items-center gap-1.5 mt-0.5">
+                                <span>{r.provider}</span>
+                                <span className="text-neutral-700">•</span>
+                                <span className="text-neutral-400">{r.modelId}</span>
+                              </div>
                             </td>
                             <td className="p-4">
                               <div className="flex items-center gap-2">
                                 <span className="font-mono font-black text-amber-400 text-sm">
-                                  {r.winRate}%
+                                  {Math.round(r.winRate)}%
                                 </span>
                                 <div className="w-16 h-1.5 rounded-full bg-neutral-800 overflow-hidden">
                                   <div
                                     className="h-full bg-amber-400 rounded-full"
-                                    style={{ width: `${r.winRate}%` }}
+                                    style={{ width: `${Math.round(r.winRate)}%` }}
                                   />
                                 </div>
                               </div>
@@ -235,17 +259,17 @@ export default function RankingsPage() {
                                     : 'bg-yellow-500/10 text-yellow-400'
                                 }`}
                               >
-                                {r.avgAccuracy > 0 ? `${r.avgAccuracy}%` : 'N/A'}
+                                {r.avgAccuracy > 0 ? `${Math.round(r.avgAccuracy)}%` : 'N/A'}
                               </span>
                             </td>
                             <td className="p-4 font-mono text-sky-400">
-                              {r.avgCompleteness > 0 ? `${r.avgCompleteness}%` : 'N/A'}
+                              {r.avgCompleteness > 0 ? `${Math.round(r.avgCompleteness)}%` : 'N/A'}
                             </td>
                             <td className="p-4 font-mono font-bold text-white text-sm">
-                              {r.avgOverallScore > 0 ? `${r.avgOverallScore}/100` : 'N/A'}
+                              {r.avgOverallScore > 0 ? `${Math.round(r.avgOverallScore)}/100` : 'N/A'}
                             </td>
                             <td className="p-4 font-mono text-emerald-400 text-[11px]">
-                              {r.avgTokensPerSec > 0 ? `${r.avgTokensPerSec} tok/s` : 'N/A'}
+                              {r.avgTokensPerSec > 0 ? `${Math.round(r.avgTokensPerSec)} tok/s` : 'N/A'}
                             </td>
                             <td className="p-4 font-mono text-amber-300">
                               ${r.totalCostUsd.toFixed(4)}
@@ -315,10 +339,27 @@ export default function RankingsPage() {
                         </thead>
                         <tbody className="divide-y divide-neutral-800/40 font-sans">
                           {b.modelScores.map((m) => (
-                            <tr key={`${b.benchmarkId}-${m.modelId}`} className={m.wins > 0 ? 'bg-amber-500/5' : ''}>
-                              <td className="p-3 flex items-center gap-2 font-bold text-white">
-                                {m.wins > 0 && <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
-                                <span>{m.modelName}</span>
+                            <tr key={`${b.benchmarkId}-${m.modelId}`} className={`group ${m.wins > 0 ? 'bg-amber-500/5' : ''}`}>
+                              <td className="p-3">
+                                <div className="flex items-center gap-2 font-bold text-white">
+                                  {m.wins > 0 && <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                                  <span>{m.modelName}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(m.modelId)}
+                                    title={`Copy ID: ${m.modelId}`}
+                                    className="opacity-0 group-hover:opacity-100 p-1 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white transition shrink-0"
+                                  >
+                                    {copiedId === m.modelId ? (
+                                      <Check className="w-3 h-3 text-emerald-400" />
+                                    ) : (
+                                      <Copy className="w-3 h-3" />
+                                    )}
+                                  </button>
+                                </div>
+                                <div className="text-[10px] text-neutral-500 font-mono mt-0.5">
+                                  {m.modelId}
+                                </div>
                               </td>
                               <td className="p-3 font-mono">
                                 <span className={m.wins > 0 ? 'text-amber-300 font-bold' : 'text-neutral-500'}>
@@ -333,15 +374,15 @@ export default function RankingsPage() {
                                       : 'bg-yellow-500/10 text-yellow-400'
                                   }`}
                                 >
-                                  {m.avgAccuracy}%
+                                  {Math.round(m.avgAccuracy)}%
                                 </span>
                               </td>
-                              <td className="p-3 font-mono text-purple-300">{m.avgReasoning}%</td>
+                              <td className="p-3 font-mono text-purple-300">{Math.round(m.avgReasoning)}%</td>
                               <td className="p-3 font-mono font-bold text-white text-sm">
-                                {m.avgOverall}/100
+                                {Math.round(m.avgOverall)}/100
                               </td>
                               <td className="p-3 font-mono text-emerald-400 text-[11px]">
-                                {m.avgTokensPerSec > 0 ? `${m.avgTokensPerSec} tok/s` : 'N/A'}
+                                {m.avgTokensPerSec > 0 ? `${Math.round(m.avgTokensPerSec)} tok/s` : 'N/A'}
                               </td>
                             </tr>
                           ))}
