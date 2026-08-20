@@ -131,7 +131,9 @@ export default function ConsensusArenaPage() {
 
   const streamSingleModel = async (model: LLMConfig, promptText: string) => {
     const startTime = Date.now();
-    const promptTokens = estimateTokens(promptText);
+    let firstTokenTime: number | null = null;
+    let explicitPromptTokens: number | null = null;
+    let explicitCompletionTokens: number | null = null;
 
     const controller = new AbortController();
     abortControllersRef.current[model.id] = controller;
@@ -144,7 +146,7 @@ export default function ConsensusArenaPage() {
         provider: model.provider,
         response: '',
         status: 'loading',
-        promptTokens,
+        promptTokens: estimateTokens(promptText),
       },
     }));
 
@@ -186,11 +188,21 @@ export default function ConsensusArenaPage() {
             try {
               const data = JSON.parse(dataStr);
               if (data.error) throw new Error(data.error);
+
+              if (data.usage) {
+                if (data.usage.prompt_tokens) explicitPromptTokens = data.usage.prompt_tokens;
+                if (data.usage.completion_tokens) explicitCompletionTokens = data.usage.completion_tokens;
+              }
+
               if (data.content) {
+                if (!firstTokenTime) {
+                  firstTokenTime = Date.now();
+                }
                 accumulatedText += data.content;
-                const elapsedSec = Math.max(0.1, (Date.now() - startTime) / 1000);
-                const currCompletionTokens = estimateTokens(accumulatedText);
-                const currentTokensPerSec = currCompletionTokens / elapsedSec;
+                const now = Date.now();
+                const totalElapsedSec = Math.max(0.05, (now - startTime) / 1000);
+                const currTokens = explicitCompletionTokens ?? estimateTokens(accumulatedText);
+                const currentTokensPerSec = currTokens / totalElapsedSec;
 
                 setModelOutputs((prev) => ({
                   ...prev,
@@ -200,9 +212,9 @@ export default function ConsensusArenaPage() {
                     provider: model.provider,
                     response: accumulatedText,
                     status: 'loading',
-                    promptTokens,
-                    completionTokens: currCompletionTokens,
-                    totalTokens: promptTokens + currCompletionTokens,
+                    promptTokens: explicitPromptTokens ?? estimateTokens(promptText),
+                    completionTokens: currTokens,
+                    totalTokens: (explicitPromptTokens ?? estimateTokens(promptText)) + currTokens,
                     tokensPerSec: currentTokensPerSec,
                   },
                 }));
@@ -215,10 +227,14 @@ export default function ConsensusArenaPage() {
       }
 
       const totalLatency = Date.now() - startTime;
-      const completionTokens = estimateTokens(accumulatedText);
+      const promptTokens = explicitPromptTokens ?? estimateTokens(promptText);
+      const completionTokens = explicitCompletionTokens ?? estimateTokens(accumulatedText);
       const totalTokens = promptTokens + completionTokens;
-      const elapsedSec = Math.max(0.1, totalLatency / 1000);
-      const tokensPerSec = completionTokens / elapsedSec;
+      
+      // Calculate realistic tokens per second over actual duration
+      const durationSec = Math.max(0.1, totalLatency / 1000);
+      const tokensPerSec = completionTokens / durationSec;
+
       const costUsd = calculateCost(
         model.id,
         promptTokens,
@@ -238,7 +254,7 @@ export default function ConsensusArenaPage() {
         completionTokens,
         totalTokens,
         costUsd,
-        tokensPerSec,
+        tokensPerSec: Number(tokensPerSec.toFixed(1)),
       };
 
       setModelOutputs((prev) => ({

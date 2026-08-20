@@ -15,7 +15,7 @@ function formatRateLimitError(errJson: any, defaultMsg: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { modelId, prompt, userApiKey, enforceBenchmarkProtocol = true } = await req.json();
+    const { modelId, prompt, userApiKey } = await req.json();
 
     const apiKey = userApiKey || process.env.OPENROUTER_API_KEY;
 
@@ -35,7 +35,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Benchmark Metacognitive Protocol system prompt
     const systemPrompt = `You are an elite reasoning model competing in a rigorous benchmark arbitration.
 You must always structure your response clearly addressing these 4 exact dimensions:
 
@@ -109,7 +108,7 @@ You must always structure your response clearly addressing these 4 exact dimensi
       );
     }
 
-    // Stream SSE back to client
+    // Stream SSE back to client and pass through usage data if provided by provider
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
 
@@ -146,9 +145,22 @@ You must always structure your response clearly addressing these 4 exact dimensi
                   const jsonStr = trimmed.slice(6);
                   const parsed = JSON.parse(jsonStr);
                   const content = parsed.choices?.[0]?.delta?.content || '';
-                  if (content) {
+                  const usage = parsed.usage;
+
+                  if (content || usage) {
                     controller.enqueue(
-                      encoder.encode(`data: ${JSON.stringify({ content })}\n\n`)
+                      encoder.encode(
+                        `data: ${JSON.stringify({
+                          content,
+                          usage: usage
+                            ? {
+                                prompt_tokens: usage.prompt_tokens,
+                                completion_tokens: usage.completion_tokens,
+                                total_tokens: usage.total_tokens,
+                              }
+                            : undefined,
+                        })}\n\n`
+                      )
                     );
                   }
                 } catch {
