@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { HistoryQueryItem } from '@/types/consensus';
+import { VisualArtifactRenderer } from '@/components/VisualArtifactRenderer';
 import { SvgRenderer } from '@/components/SvgRenderer';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -268,21 +269,13 @@ export default function SvgGalleryPage() {
                         )}
                       </div>
 
-                      {/* Visual / Code Body */}
+                      {/* Visual / Code Sandbox Body */}
                       <div className="p-3 flex-1 flex flex-col justify-center">
-                        {m.responseText && m.responseText.includes('<svg') ? (
-                          <SvgRenderer
-                            content={m.responseText || ''}
-                            title={`${m.modelName} ${item.benchmarkTitle || 'Art'}`}
-                            className="w-full h-full"
-                          />
-                        ) : (
-                          <div className="text-xs text-neutral-300 font-mono overflow-auto max-h-[360px] p-3 rounded-xl bg-neutral-950 border border-neutral-800/80 leading-relaxed">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {m.responseText || '[No code output]'}
-                            </ReactMarkdown>
-                          </div>
-                        )}
+                        <VisualArtifactRenderer
+                          content={m.responseText || ''}
+                          title={`${m.modelName} ${item.benchmarkTitle || 'Art'}`}
+                          className="w-full h-full"
+                        />
                       </div>
                     </div>
                   ))}
