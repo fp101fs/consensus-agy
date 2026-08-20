@@ -126,14 +126,18 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Filter out batch-only endpoints and non-text modalities
+    // Filter out batch-only endpoints and non-text output modalities (e.g. image-only generation)
     const models: LLMConfig[] = data
       .filter((m: any) => {
         if (!m.id) return false;
         if (m.id.endsWith(':batch')) return false;
         if (m.id.startsWith('~')) return false; // filter experimental aliases
-        if (m.architecture?.modality && !m.architecture.modality.includes('text->text')) {
-          return false;
+        if (m.architecture?.modality) {
+          const mod = m.architecture.modality;
+          // Must output text (e.g. "text->text", "text+image+file->text", "multimodal->text")
+          if (!mod.includes('->text') && !mod.includes('text')) {
+            return false;
+          }
         }
         return true;
       })
