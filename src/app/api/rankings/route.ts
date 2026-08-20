@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getDbPool, initDbSchema } from '@/lib/db';
-import { ModelRanking } from '@/types/consensus';
+import { ModelRanking, BenchmarkStats } from '@/types/consensus';
 
 export const runtime = 'nodejs';
 export const revalidate = 0;
@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     const db = getDbPool();
     await initDbSchema();
 
+    // 1. Overall model standings
     const query = `
       SELECT 
         m.model_id,
@@ -48,7 +49,57 @@ export async function GET(req: NextRequest) {
       totalCostUsd: Number(r.total_cost_usd || 0),
     }));
 
-    return new Response(JSON.stringify({ rankings }), {
+    // 2. Per-Benchmark breakdown: How each model performed on specific logic puzzles / benchmarks
+    const benchRes = await db.query(`
+      SELECT 
+        COALESCE(q.benchmark_id, 'custom-prompt') as benchmark_id,
+        COALESCE(q.benchmark_title, 'Custom Query') as benchmark_title,
+        m.model_id,
+        MAX(m.model_name) as model_name,
+        COUNT(*)::int as runs,
+        SUM(CASE WHEN m.is_winner = true THEN 1 ELSE 0 END)::int as wins,
+        ROUND(AVG(m.accuracy_score)::numeric, 1)::float as avg_accuracy,
+        ROUND(AVG(m.reasoning_score)::numeric, 1)::float as avg_reasoning,
+        ROUND(AVG(m.overall_score)::numeric, 1)::float as avg_overall,
+        ROUND(AVG(m.latency_ms)::numeric, 0)::int as avg_latency_ms,
+        ROUND(AVG(m.tokens_per_sec)::numeric, 1)::float as avg_tokens_per_sec
+      FROM model_runs m
+      JOIN consensus_queries q ON m.query_id = q.id
+      GROUP BY q.benchmark_id, q.benchmark_title, m.model_id
+      ORDER BY q.benchmark_id, wins DESC, avg_overall DESC
+    `);
+
+    const benchmarkMap: Record<string, BenchmarkStats> = {};
+
+    benchRes.rows.forEach((row) => {
+      const bId = row.benchmark_id;
+      if (!benchmarkMap[bId]) {
+        benchmarkMap[bId] = {
+          benchmarkId: bId,
+          benchmarkTitle: row.benchmark_title,
+          totalRuns: 0,
+          winningModels: [],
+          modelScores: [],
+        };
+      }
+
+      benchmarkMap[bId].totalRuns += row.runs;
+      benchmarkMap[bId].modelScores.push({
+        modelId: row.model_id,
+        modelName: row.model_name,
+        runs: row.runs,
+        wins: row.wins,
+        avgAccuracy: Number(row.avg_accuracy || 0),
+        avgReasoning: Number(row.avg_reasoning || 0),
+        avgOverall: Number(row.avg_overall || 0),
+        avgLatencyMs: Number(row.avg_latency_ms || 0),
+        avgTokensPerSec: Number(row.avg_tokens_per_sec || 0),
+      });
+    });
+
+    const benchmarks: BenchmarkStats[] = Object.values(benchmarkMap);
+
+    return new Response(JSON.stringify({ rankings, benchmarks }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',

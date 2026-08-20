@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getDbPool, initDbSchema } from '@/lib/db';
 import { ConsensusJudgeReport, ModelOutput } from '@/types/consensus';
 import { estimateTokens, calculateCost } from '@/lib/pricing';
+import { getPromptBenchmarkId } from '@/lib/presets';
 
 export const runtime = 'nodejs';
 
@@ -119,6 +120,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const { benchmarkId, benchmarkTitle } = getPromptBenchmarkId(prompt);
     const promptTokens = estimateTokens(prompt);
 
     // 1. Run all candidate models simultaneously in parallel
@@ -208,7 +210,6 @@ export async function POST(req: NextRequest) {
     });
 
     // 2. Run Supreme Judge Arbitrator
-    const judgeStartTime = Date.now();
     const userContent = `User Prompt:\n"""\n${prompt}\n"""\n\nCandidate Model Responses to judge:\n${modelOutputsArray
       .map(
         (m, idx) => `
@@ -300,6 +301,8 @@ ${m.response || `[Failed: ${m.error || 'No output'}]`}
         const queryInsert = await db.query(
           `
           INSERT INTO consensus_queries (
+            benchmark_id,
+            benchmark_title,
             prompt,
             winner_model_id,
             winner_reason,
@@ -311,10 +314,12 @@ ${m.response || `[Failed: ${m.error || 'No output'}]`}
             total_tokens_out,
             total_latency_ms,
             judge_report
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
           RETURNING id
           `,
           [
+            benchmarkId,
+            benchmarkTitle,
             prompt,
             judgeReport.winnerModelId || null,
             judgeReport.winnerReason || null,
@@ -339,6 +344,7 @@ ${m.response || `[Failed: ${m.error || 'No output'}]`}
             `
             INSERT INTO model_runs (
               query_id,
+              benchmark_id,
               model_id,
               model_name,
               provider,
@@ -355,10 +361,11 @@ ${m.response || `[Failed: ${m.error || 'No output'}]`}
               reasoning_score,
               overall_score,
               status
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
             `,
             [
               queryId,
+              benchmarkId,
               out.modelId,
               out.modelName,
               out.provider,
@@ -387,6 +394,8 @@ ${m.response || `[Failed: ${m.error || 'No output'}]`}
       JSON.stringify({
         success: true,
         queryId,
+        benchmarkId,
+        benchmarkTitle,
         prompt,
         totalLatencyMs,
         models: modelOutputsArray,

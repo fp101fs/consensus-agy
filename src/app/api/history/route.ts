@@ -13,6 +13,8 @@ export async function GET(req: NextRequest) {
     const queriesRes = await db.query(`
       SELECT 
         id,
+        benchmark_id,
+        benchmark_title,
         prompt,
         winner_model_id,
         winner_reason,
@@ -82,6 +84,8 @@ export async function GET(req: NextRequest) {
 
     const history: HistoryQueryItem[] = queriesRes.rows.map((r) => ({
       id: r.id,
+      benchmarkId: r.benchmark_id || null,
+      benchmarkTitle: r.benchmark_title || null,
       prompt: r.prompt,
       winnerModelId: r.winner_model_id,
       winnerReason: r.winner_reason,

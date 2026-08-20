@@ -1,5 +1,8 @@
+import crypto from 'crypto';
+
 export interface PresetPrompt {
-  id: string;
+  id: string; // e.g. "benchmark-zebra-puzzle"
+  presetKey: string; // e.g. "zebra-puzzle"
   title: string;
   category: string;
   difficulty: string; // e.g. "⭐⭐"
@@ -10,7 +13,8 @@ export interface PresetPrompt {
 
 export const BENCHMARK_PRESET_PROMPTS: PresetPrompt[] = [
   {
-    id: 'zebra-puzzle',
+    id: 'benchmark-zebra-puzzle',
+    presetKey: 'zebra-puzzle',
     title: "Einstein's Riddle / Zebra Puzzle",
     category: 'Constraint Satisfaction',
     difficulty: '⭐⭐⭐',
@@ -38,7 +42,8 @@ Clues:
 Question: Who owns the fish? Provide the complete table for all 5 houses with proof step-by-step.`,
   },
   {
-    id: 'scheduling-constraint',
+    id: 'benchmark-scheduling-constraint',
+    presetKey: 'scheduling-constraint',
     title: 'Scheduling / Constraint Problem',
     category: 'Constraint Reasoning',
     difficulty: '⭐⭐⭐',
@@ -57,7 +62,8 @@ Constraints:
 Find all valid shift assignments from Monday to Friday, show why other candidates fail, and state the definitive valid schedule.`,
   },
   {
-    id: 'knights-knaves',
+    id: 'benchmark-knights-knaves',
+    presetKey: 'knights-knaves',
     title: 'Knights & Knaves',
     category: 'Basic Deduction',
     difficulty: '⭐⭐',
@@ -72,7 +78,18 @@ You meet three inhabitants: A, B, and C.
 Determine the exact identities of A, B, and C with formal logical deduction.`,
   },
   {
-    id: 'truth-liar-random',
+    id: 'benchmark-river-crossing',
+    presetKey: 'river-crossing',
+    title: 'Wolf, Goat & Cabbage River Crossing',
+    category: 'Basic Deduction',
+    difficulty: '⭐⭐',
+    tags: ['State-space search', 'River crossing', 'Constraint satisfaction'],
+    description: 'Classic puzzle requiring counter-intuitive intermediate return step to avoid predation.',
+    prompt: `Solve this logic puzzle: A farmer needs to cross a river with a wolf, a goat, and a cabbage. The boat can only carry the farmer and one item. If left alone, the wolf eats the goat, and the goat eats the cabbage. Determine: (1) Answer with exact step sequence, (2) Brief reasoning, (3) Confidence 0-100%, (4) Whether the clues guarantee a unique sequence.`,
+  },
+  {
+    id: 'benchmark-truth-liar-random',
+    presetKey: 'truth-liar-random',
     title: 'Truth / Liar / Random (Hardest Logic Puzzle)',
     category: 'Complex Deduction',
     difficulty: '⭐⭐⭐⭐',
@@ -85,7 +102,8 @@ The gods understand English, but will answer in their own language, in which the
 Provide a complete, sound question strategy that guarantees discovering the identity of each god.`,
   },
   {
-    id: 'self-referential',
+    id: 'benchmark-self-referential',
+    presetKey: 'self-referential',
     title: 'Self-Referential Statements',
     category: 'Logical Consistency',
     difficulty: '⭐⭐⭐⭐⭐',
@@ -101,7 +119,8 @@ Provide a complete, sound question strategy that guarantees discovering the iden
 Determine the truth value (True or False) of each of the 5 statements such that the entire system is logically consistent, or prove that no consistent assignment exists.`,
   },
   {
-    id: 'murder-mystery',
+    id: 'benchmark-murder-mystery',
+    presetKey: 'murder-mystery',
     title: 'Murder Mystery Alibi Graph',
     category: 'Multi-hop Reasoning',
     difficulty: '⭐⭐⭐⭐',
@@ -121,7 +140,8 @@ Evidence & Statements:
 Who committed the murder, who lied on their alibi, and what is the exact timeline?`,
   },
   {
-    id: 'counterfactual-puzzle',
+    id: 'benchmark-counterfactual-puzzle',
+    presetKey: 'counterfactual-puzzle',
     title: 'Counterfactual Puzzle',
     category: 'Hypothetical Reasoning',
     difficulty: '⭐⭐⭐⭐⭐',
@@ -142,7 +162,8 @@ Hypothetical rule changes:
 Under the counterfactual premise that "both semifinal results were reversed", who is the most probable champion and with what exact mathematical probability?`,
   },
   {
-    id: 'impossible-puzzle',
+    id: 'benchmark-impossible-puzzle',
+    presetKey: 'impossible-puzzle',
     title: 'Impossible Puzzle (False Premise Detection)',
     category: 'Detecting False Premises',
     difficulty: '⭐⭐⭐⭐⭐',
@@ -154,7 +175,8 @@ Calculate the exact diagonal length and area of the inscribed square.
 Show all formulas and calculate the final numerical values.`,
   },
   {
-    id: 'multiple-solution-puzzle',
+    id: 'benchmark-multiple-solution-puzzle',
+    presetKey: 'multiple-solution-puzzle',
     title: 'Multiple-Solution Ambiguity Puzzle',
     category: 'Avoiding Unjustified Certainty',
     difficulty: '⭐⭐⭐⭐⭐',
@@ -166,31 +188,31 @@ x * y * z = 120
 
 Find x, y, and z. List all possible valid integer triples (up to permutation) and prove whether the solution is unique or if multiple distinct sets of values exist.`,
   },
-  {
-    id: 'nextjs-vs-remix',
-    title: 'Next.js App Router vs Remix (SSR & Real-time)',
-    category: 'Technical Architecture',
-    difficulty: '⭐⭐⭐',
-    tags: ['Technical architecture', 'Trade-offs', 'Frontend'],
-    description: 'Compare architectural trade-offs, streaming, nested layouts, and server actions for enterprise real-time dashboards.',
-    prompt: 'Compare Next.js App Router vs Remix for enterprise real-time dashboards with SSR. Highlight server actions, streaming rendering, caching models, and ecosystem lock-in.',
-  },
-  {
-    id: 'nvidia-revenue',
-    title: 'NVIDIA Q3 FY2025 Revenue & Growth Breakdown',
-    category: 'Fact Verification',
-    difficulty: '⭐⭐⭐',
-    tags: ['Financial verification', 'Data extraction', 'Fact checking'],
-    description: 'Verifies real financial disclosures, Data Center segment share, and compute growth metrics.',
-    prompt: 'What was the exact revenue of NVIDIA in Q3 FY2025 and what drove the growth? Break down Data Center vs Gaming and gross margin figures.',
-  },
-  {
-    id: 'pgvector-vs-pinecone',
-    title: 'PostgreSQL pgvector vs Dedicated Vector DBs',
-    category: 'Engineering Decisions',
-    difficulty: '⭐⭐⭐',
-    tags: ['Database architecture', 'Vector search', 'System design'],
-    description: 'Evaluates architectural cost, latency at scale, indexing (HNSW vs IVFFlat), and ACID trade-offs.',
-    prompt: 'Should an AI startup choose PostgreSQL with pgvector or a dedicated vector database (Pinecone/Qdrant) for 50M embeddings with metadata filtering? Compare costs, index build latency, and ACID operational overhead.',
-  },
 ];
+
+// Helper to compute prompt fingerprint / benchmark match
+export function getPromptBenchmarkId(promptText: string): { benchmarkId: string; benchmarkTitle: string; isPreset: boolean } {
+  if (!promptText) return { benchmarkId: 'custom-prompt', benchmarkTitle: 'Custom Prompt', isPreset: false };
+
+  const clean = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 80);
+  const targetClean = clean(promptText);
+
+  // Exact or high similarity match against known presets
+  for (const preset of BENCHMARK_PRESET_PROMPTS) {
+    if (clean(preset.prompt) === targetClean || targetClean.includes(clean(preset.prompt).slice(0, 40))) {
+      return {
+        benchmarkId: preset.id,
+        benchmarkTitle: preset.title,
+        isPreset: true,
+      };
+    }
+  }
+
+  // Otherwise generate deterministic 8-character hash ID
+  const hash = crypto.createHash('sha256').update(promptText.trim().toLowerCase()).digest('hex').slice(0, 8);
+  return {
+    benchmarkId: `query-${hash}`,
+    benchmarkTitle: promptText.length > 36 ? promptText.slice(0, 36) + '...' : promptText,
+    isPreset: false,
+  };
+}

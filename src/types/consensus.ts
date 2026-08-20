@@ -36,12 +36,11 @@ export interface ModelEvaluation {
   weaknesses: string[];
   hallucinationsOrErrors?: string[];
   distinctiveAngle?: string;
-  // 4-Dimensional Metacognitive Calibration Assessment
   metaCognition?: {
     claimedConfidence?: number; // 0-100 reported by model
     confidenceAppropriateness?: 'Well-Calibrated' | 'Overconfident' | 'Underconfident' | 'Unspecified';
     uniquenessRecognition?: 'Correctly Identified Unique' | 'Correctly Identified Non-Unique' | 'Correctly Identified Impossible' | 'Falsely Claimed Unique' | 'Falsely Claimed Multiple';
-    epistemicVerdict?: string; // e.g. "Model correctly caught that problem is underdetermined"
+    epistemicVerdict?: string;
   };
 }
 
@@ -53,10 +52,10 @@ export interface CitedReference {
 }
 
 export interface ConsensusJudgeReport {
-  synthesis: string; // Unified truth & best verified solution
-  verdictSummary: string; // High level TL;DR
+  synthesis: string;
+  verdictSummary: string;
   agreementLevel: 'High Consensus' | 'Moderate Divergence' | 'Sharp Disagreement' | 'Mixed Nuance';
-  agreementScore: number; // 0 - 100
+  agreementScore: number;
   problemSolvability: 'Guaranteed Unique Solution' | 'Underdetermined (Multiple Solutions)' | 'Impossible (Contradictory/False Premise)' | 'Open-Ended / Empirical';
   keyConsensusPoints: string[];
   disagreementsOrOutliers: string[];
@@ -64,7 +63,7 @@ export interface ConsensusJudgeReport {
   winnerModelId: string;
   winnerReason: string;
   citedReferences?: CitedReference[];
-  confidenceRating: number; // 0 - 100
+  confidenceRating: number;
 }
 
 export interface ModelRanking {
@@ -83,6 +82,24 @@ export interface ModelRanking {
   totalCostUsd: number;
 }
 
+export interface BenchmarkStats {
+  benchmarkId: string;
+  benchmarkTitle: string;
+  totalRuns: number;
+  winningModels: { modelId: string; modelName: string; wins: number; winRate: number }[];
+  modelScores: {
+    modelId: string;
+    modelName: string;
+    runs: number;
+    wins: number;
+    avgAccuracy: number;
+    avgReasoning: number;
+    avgOverall: number;
+    avgLatencyMs: number;
+    avgTokensPerSec: number;
+  }[];
+}
+
 export interface UsageSummary {
   totalTokensIn: number;
   totalTokensOut: number;
@@ -92,6 +109,8 @@ export interface UsageSummary {
   avgCostPerQuery: number;
   recentQueries: {
     id: string;
+    benchmarkId?: string;
+    benchmarkTitle?: string;
     prompt: string;
     createdAt: string;
     totalCostUsd: number;
@@ -112,6 +131,8 @@ export interface UsageSummary {
 
 export interface HistoryQueryItem {
   id: string;
+  benchmarkId: string | null;
+  benchmarkTitle: string | null;
   prompt: string;
   winnerModelId: string | null;
   winnerReason: string | null;

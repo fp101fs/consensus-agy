@@ -21,10 +21,12 @@ export function getDbPool(): Pool {
 export async function initDbSchema() {
   const db = getDbPool();
   
-  // Table for tracking each full consensus run
+  // Table for tracking each full consensus run with benchmark IDs
   await db.query(`
     CREATE TABLE IF NOT EXISTS consensus_queries (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      benchmark_id TEXT,
+      benchmark_title TEXT,
       prompt TEXT NOT NULL,
       winner_model_id TEXT,
       winner_reason TEXT,
@@ -40,11 +42,18 @@ export async function initDbSchema() {
     );
   `);
 
+  // Ensure column exists if table was previously created without it
+  await db.query(`
+    ALTER TABLE consensus_queries ADD COLUMN IF NOT EXISTS benchmark_id TEXT;
+    ALTER TABLE consensus_queries ADD COLUMN IF NOT EXISTS benchmark_title TEXT;
+  `);
+
   // Table for tracking individual model executions inside each consensus run
   await db.query(`
     CREATE TABLE IF NOT EXISTS model_runs (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       query_id UUID REFERENCES consensus_queries(id) ON DELETE CASCADE,
+      benchmark_id TEXT,
       model_id TEXT NOT NULL,
       model_name TEXT NOT NULL,
       provider TEXT,
@@ -65,10 +74,16 @@ export async function initDbSchema() {
     );
   `);
 
-  // Create indexes for fast query history and rankings analytics
+  await db.query(`
+    ALTER TABLE model_runs ADD COLUMN IF NOT EXISTS benchmark_id TEXT;
+  `);
+
+  // Create indexes for fast query history, benchmark aggregation and rankings analytics
   await db.query(`
     CREATE INDEX IF NOT EXISTS idx_consensus_queries_created_at ON consensus_queries(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_consensus_queries_benchmark ON consensus_queries(benchmark_id);
     CREATE INDEX IF NOT EXISTS idx_model_runs_model_id ON model_runs(model_id);
     CREATE INDEX IF NOT EXISTS idx_model_runs_query_id ON model_runs(query_id);
+    CREATE INDEX IF NOT EXISTS idx_model_runs_benchmark ON model_runs(benchmark_id);
   `);
 }

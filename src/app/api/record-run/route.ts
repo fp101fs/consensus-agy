@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getDbPool, initDbSchema } from '@/lib/db';
 import { ConsensusJudgeReport, ModelOutput } from '@/types/consensus';
+import { getPromptBenchmarkId } from '@/lib/presets';
 
 export const runtime = 'nodejs';
 
@@ -18,6 +19,7 @@ export async function POST(req: NextRequest) {
     const db = getDbPool();
     await initDbSchema();
 
+    const { benchmarkId, benchmarkTitle } = getPromptBenchmarkId(prompt);
     const outputs: ModelOutput[] = Object.values(modelOutputs);
 
     let totalTokensIn = 0;
@@ -32,10 +34,12 @@ export async function POST(req: NextRequest) {
 
     const report: ConsensusJudgeReport | null = judgeReport || null;
 
-    // 1. Insert consensus query record
+    // 1. Insert consensus query record with benchmark fingerprint
     const queryInsert = await db.query(
       `
       INSERT INTO consensus_queries (
+        benchmark_id,
+        benchmark_title,
         prompt,
         winner_model_id,
         winner_reason,
@@ -47,10 +51,12 @@ export async function POST(req: NextRequest) {
         total_tokens_out,
         total_latency_ms,
         judge_report
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING id, created_at
       `,
       [
+        benchmarkId,
+        benchmarkTitle,
         prompt,
         report?.winnerModelId || null,
         report?.winnerReason || null,
@@ -67,7 +73,7 @@ export async function POST(req: NextRequest) {
 
     const queryId = queryInsert.rows[0].id;
 
-    // 2. Insert individual model runs
+    // 2. Insert individual model runs with benchmark_id
     for (const out of outputs) {
       const evaluation = report?.evaluations?.find((e) => e.modelId === out.modelId);
       const isWinner = report?.winnerModelId === out.modelId;
@@ -76,6 +82,7 @@ export async function POST(req: NextRequest) {
         `
         INSERT INTO model_runs (
           query_id,
+          benchmark_id,
           model_id,
           model_name,
           provider,
@@ -92,10 +99,11 @@ export async function POST(req: NextRequest) {
           reasoning_score,
           overall_score,
           status
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
         `,
         [
           queryId,
+          benchmarkId,
           out.modelId,
           out.modelName || out.modelId,
           out.provider || 'AI',
@@ -116,7 +124,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return new Response(JSON.stringify({ success: true, queryId }), {
+    return new Response(JSON.stringify({ success: true, queryId, benchmarkId, benchmarkTitle }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
