@@ -36,6 +36,13 @@ export interface ModelEvaluation {
   weaknesses: string[];
   hallucinationsOrErrors?: string[];
   distinctiveAngle?: string;
+  // 4-Dimensional Metacognitive Calibration Assessment
+  metaCognition?: {
+    claimedConfidence?: number; // 0-100 reported by model
+    confidenceAppropriateness?: 'Well-Calibrated' | 'Overconfident' | 'Underconfident' | 'Unspecified';
+    uniquenessRecognition?: 'Correctly Identified Unique' | 'Correctly Identified Non-Unique' | 'Correctly Identified Impossible' | 'Falsely Claimed Unique' | 'Falsely Claimed Multiple';
+    epistemicVerdict?: string; // e.g. "Model correctly caught that problem is underdetermined"
+  };
 }
 
 export interface CitedReference {
@@ -50,6 +57,7 @@ export interface ConsensusJudgeReport {
   verdictSummary: string; // High level TL;DR
   agreementLevel: 'High Consensus' | 'Moderate Divergence' | 'Sharp Disagreement' | 'Mixed Nuance';
   agreementScore: number; // 0 - 100
+  problemSolvability: 'Guaranteed Unique Solution' | 'Underdetermined (Multiple Solutions)' | 'Impossible (Contradictory/False Premise)' | 'Open-Ended / Empirical';
   keyConsensusPoints: string[];
   disagreementsOrOutliers: string[];
   evaluations: ModelEvaluation[];

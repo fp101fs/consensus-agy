@@ -15,7 +15,7 @@ function formatRateLimitError(errJson: any, defaultMsg: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { modelId, prompt, userApiKey } = await req.json();
+    const { modelId, prompt, userApiKey, enforceBenchmarkProtocol = true } = await req.json();
 
     const apiKey = userApiKey || process.env.OPENROUTER_API_KEY;
 
@@ -35,13 +35,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Configure request with OpenRouter provider fallbacks & routing
+    // Benchmark Metacognitive Protocol system prompt
+    const systemPrompt = `You are an elite reasoning model competing in a rigorous benchmark arbitration.
+You must always structure your response clearly addressing these 4 exact dimensions:
+
+1. **Answer**: State the direct, precise answer to the question/problem.
+2. **Reasoning**: Provide a concise, step-by-step logical proof or justification.
+3. **Confidence Rating (0–100%)**: State your numerical epistemic certainty in your answer (e.g. "Confidence: 95%"), accounting for any ambiguities.
+4. **Uniqueness / Solvability**: State explicitly whether the given clues guarantee a **Unique Solution**, whether the problem is **Underdetermined** (multiple valid solutions exist), or whether the problem is **Impossible / Contradictory** (false premise or conflicting constraints).`;
+
     const requestPayload = {
       model: modelId,
       messages: [
         {
           role: 'system',
-          content: 'You are an intelligent, precise AI responding to the user. Give a comprehensive, factual, and well-structured answer.',
+          content: systemPrompt,
         },
         {
           role: 'user',
@@ -50,7 +58,7 @@ export async function POST(req: NextRequest) {
       ],
       stream: true,
       provider: {
-        allow_fallbacks: true, // Automatically route to another provider if primary is 429 rate-limited
+        allow_fallbacks: true,
       },
     };
 
@@ -72,7 +80,6 @@ export async function POST(req: NextRequest) {
 
     let response = await executeStream(modelId);
 
-    // If 429 rate limit hit on free endpoint, try fallback to base non-free or standard model if applicable
     if (response.status === 429 && modelId.endsWith(':free')) {
       const baseModel = modelId.replace(/:free$/, '');
       console.warn(`429 on free tier ${modelId}, attempting fallback to ${baseModel}`);
@@ -145,7 +152,7 @@ export async function POST(req: NextRequest) {
                     );
                   }
                 } catch {
-                  // Pass line if unparseable
+                  // Pass
                 }
               }
             }

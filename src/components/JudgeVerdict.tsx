@@ -15,6 +15,9 @@ import {
   Scale,
   BarChart3,
   Layers,
+  BrainCircuit,
+  HelpCircle,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface JudgeVerdictProps {
@@ -39,13 +42,13 @@ export const JudgeVerdict: React.FC<JudgeVerdictProps> = ({
             <Scale className="w-6 h-6 animate-pulse" />
           </div>
           <h3 className="text-xl font-bold text-neutral-100 flex items-center gap-2">
-            <span>Judge AI Cross-Verifying & Deliberating</span>
+            <span>Judge AI Testing Calibration, Uniqueness & Fact-Checking</span>
             <span className="flex gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
             </span>
           </h3>
           <p className="text-sm text-neutral-400 max-w-lg mt-1">
-            Analyzing 3 independent models, fact-checking discrepancies, synthesizing consensus truth, and scoring factual accuracy...
+            Verifying solution uniqueness, evaluating confidence calibration (detecting unjustified certainty), and synthesizing consensus truth...
           </p>
         </div>
       </div>
@@ -81,6 +84,19 @@ export const JudgeVerdict: React.FC<JudgeVerdictProps> = ({
     }
   };
 
+  const getSolvabilityBadge = (solvability?: string) => {
+    switch (solvability) {
+      case 'Underdetermined (Multiple Solutions)':
+        return 'bg-amber-500/15 text-amber-300 border-amber-500/40';
+      case 'Impossible (Contradictory/False Premise)':
+        return 'bg-rose-500/15 text-rose-300 border-rose-500/40';
+      case 'Guaranteed Unique Solution':
+        return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40';
+      default:
+        return 'bg-indigo-500/15 text-indigo-300 border-indigo-500/40';
+    }
+  };
+
   return (
     <div className="rounded-3xl border border-indigo-500/30 bg-neutral-900/90 shadow-2xl my-8 overflow-hidden backdrop-blur-xl">
       {/* Top Banner Header */}
@@ -91,16 +107,22 @@ export const JudgeVerdict: React.FC<JudgeVerdictProps> = ({
               <Gavel className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-xl font-extrabold text-white tracking-tight">
                   Supreme Judge Consensus Verdict
                 </h2>
                 <span className="text-[11px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-0.5 rounded-full font-medium flex items-center gap-1">
-                  <Search className="w-3 h-3" /> Live Fact-Verified
+                  <Search className="w-3 h-3" /> Live Verified
                 </span>
+                {report.problemSolvability && (
+                  <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold border flex items-center gap-1 ${getSolvabilityBadge(report.problemSolvability)}`}>
+                    <BrainCircuit className="w-3 h-3" />
+                    <span>{report.problemSolvability}</span>
+                  </span>
+                )}
               </div>
               <p className="text-xs text-neutral-300 mt-0.5">
-                Evaluated against factual accuracy, logical completeness, and cross-model alignment.
+                Evaluated against factual accuracy, step-by-step logic, epistemic calibration, and uniqueness recognition.
               </p>
             </div>
           </div>
@@ -114,7 +136,7 @@ export const JudgeVerdict: React.FC<JudgeVerdictProps> = ({
 
             <div className="px-3 py-1 rounded-xl text-xs font-semibold border bg-purple-500/10 text-purple-300 border-purple-500/30 flex items-center gap-1.5">
               <BarChart3 className="w-3.5 h-3.5" />
-              <span>Confidence: {report.confidenceRating}%</span>
+              <span>Judge Confidence: {report.confidenceRating}%</span>
             </div>
           </div>
         </div>
@@ -160,6 +182,53 @@ export const JudgeVerdict: React.FC<JudgeVerdictProps> = ({
               <p className="text-xs text-neutral-300 mt-1 leading-relaxed">
                 {report.winnerReason}
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Metacognitive Calibration & Uniqueness Cards */}
+        {report.evaluations?.some((e) => e.metaCognition) && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <BrainCircuit className="w-4 h-4 text-indigo-400" />
+              <h4 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">
+                Epistemic Calibration & Problem Uniqueness Audit
+              </h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {report.evaluations.map((ev) => {
+                const meta = ev.metaCognition;
+                if (!meta) return null;
+                const isOverconfident = meta.confidenceAppropriateness === 'Overconfident';
+                return (
+                  <div
+                    key={`meta-${ev.modelId}`}
+                    className="p-3.5 rounded-2xl bg-neutral-950/60 border border-neutral-800 space-y-2 text-xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white">{ev.modelName || ev.modelId}</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        isOverconfident
+                          ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                          : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                      }`}>
+                        {meta.confidenceAppropriateness || 'Calibrated'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-1 text-[11px] font-mono text-neutral-400">
+                      <div>Claimed Conf: <strong className="text-white">{meta.claimedConfidence ?? 'N/A'}%</strong></div>
+                      <div className="truncate text-right">{meta.uniquenessRecognition || 'Evaluated'}</div>
+                    </div>
+
+                    {meta.epistemicVerdict && (
+                      <p className="text-[11px] text-neutral-400 leading-snug border-t border-neutral-800/80 pt-1.5">
+                        {meta.epistemicVerdict}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -238,7 +307,7 @@ export const JudgeVerdict: React.FC<JudgeVerdictProps> = ({
             <div className="flex items-center gap-2 mb-3">
               <BarChart3 className="w-4 h-4 text-neutral-400" />
               <h4 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">
-                Comprehensive Model Scorecard
+                Comprehensive Model Scorecard & Calibration
               </h4>
             </div>
             <div className="overflow-x-auto rounded-2xl border border-neutral-800 bg-neutral-950/60">
@@ -249,6 +318,7 @@ export const JudgeVerdict: React.FC<JudgeVerdictProps> = ({
                     <th className="p-3">Accuracy</th>
                     <th className="p-3">Completeness</th>
                     <th className="p-3">Reasoning</th>
+                    <th className="p-3">Calibration</th>
                     <th className="p-3">Overall</th>
                     <th className="p-3">Key Differentiator</th>
                   </tr>
@@ -269,6 +339,15 @@ export const JudgeVerdict: React.FC<JudgeVerdictProps> = ({
                         </td>
                         <td className="p-3 font-mono text-sky-300">{ev.completenessScore}%</td>
                         <td className="p-3 font-mono text-purple-300">{ev.reasoningScore}%</td>
+                        <td className="p-3 font-mono text-[11px]">
+                          {ev.metaCognition?.confidenceAppropriateness ? (
+                            <span className={ev.metaCognition.confidenceAppropriateness === 'Overconfident' ? 'text-rose-400' : 'text-emerald-400'}>
+                              {ev.metaCognition.confidenceAppropriateness}
+                            </span>
+                          ) : (
+                            <span className="text-neutral-500">N/A</span>
+                          )}
+                        </td>
                         <td className="p-3 font-mono font-bold text-amber-300 text-sm">
                           {ev.overallScore}/100
                         </td>
